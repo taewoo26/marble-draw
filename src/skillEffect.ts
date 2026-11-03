@@ -1,4 +1,4 @@
-import { FREEZE_RADIUS, SKILL_LABEL_DURATION } from './data/constants';
+import { ANTI_GRAVITY_DURATION, FREEZE_RADIUS, MAGNET_RANGE, SKILL_LABEL_DURATION } from './data/constants';
 import type { GameObject } from './gameObject';
 import type { ColorTheme } from './types/ColorTheme';
 import type { VectorLike } from './types/VectorLike';
@@ -154,6 +154,100 @@ export class FreezeEffect implements GameObject {
     ctx.stroke();
     ctx.globalAlpha *= 0.2;
     ctx.fill();
+    ctx.restore();
+  }
+}
+
+/**
+ * 반중력: 구슬을 따라가며 작은 점들이 위로 올라간다.
+ * 골인한 구슬은 물리에서 지워지면 위치가 (0, 0) 이 되므로 골인 뒤에는 따라가지 않는다
+ */
+const ANTI_GRAVITY_DOTS = 6;
+const ANTI_GRAVITY_DOT_RISE = 1.2;
+
+export class AntiGravityEffect implements GameObject {
+  private _elapsed = 0;
+  isDestroy = false;
+  private _position: VectorLike;
+  private _following = true;
+  /** 점마다 가로 위치(-1 ~ 1)와 출발 시점(0 ~ 1)을 다르게 해서 보글보글 올라가게 한다 */
+  private _dots: { dx: number; phase: number }[];
+
+  constructor(
+    private _target: VectorLike,
+    private _goalY: number
+  ) {
+    this._position = { x: _target.x, y: _target.y };
+    this._dots = Array.from({ length: ANTI_GRAVITY_DOTS }, (_, i) => ({
+      dx: Math.random() * 2 - 1,
+      phase: i / ANTI_GRAVITY_DOTS,
+    }));
+  }
+
+  update(deltaTime: number) {
+    this._elapsed += deltaTime;
+    if (this._following) {
+      if (this._target.y > this._goalY) {
+        this._following = false;
+      } else {
+        this._position = { x: this._target.x, y: this._target.y };
+      }
+    }
+    if (this._elapsed > ANTI_GRAVITY_DURATION) {
+      this.isDestroy = true;
+    }
+  }
+
+  render(ctx: CanvasRenderingContext2D, zoom: number, theme: ColorTheme) {
+    const rate = Math.min(1, this._elapsed / ANTI_GRAVITY_DURATION);
+    const { x, y } = this._position;
+    ctx.save();
+    ctx.fillStyle = theme.skillColors.antiGravity;
+    for (const dot of this._dots) {
+      // 점 하나는 전체 시간의 절반 동안 아래에서 위로 올라가며 흐려진다
+      const t = (rate * 2 - dot.phase) % 1;
+      if (t < 0) continue;
+      ctx.globalAlpha = (1 - t) * (1 - rate * rate);
+      ctx.beginPath();
+      ctx.arc(x + dot.dx * 0.3, y + 0.2 - t * ANTI_GRAVITY_DOT_RISE, 3 / zoom, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+/** 자석: 원이 바깥(자석 범위)에서 안쪽으로 좁아진다. 두 겹이 차례로 좁아진다 */
+const MAGNET_LIFETIME = 600;
+
+export class MagnetEffect implements GameObject {
+  private _elapsed = 0;
+  isDestroy = false;
+  private _position: VectorLike;
+
+  constructor(x: number, y: number) {
+    this._position = { x, y };
+  }
+
+  update(deltaTime: number) {
+    this._elapsed += deltaTime;
+    if (this._elapsed > MAGNET_LIFETIME) {
+      this.isDestroy = true;
+    }
+  }
+
+  render(ctx: CanvasRenderingContext2D, zoom: number, theme: ColorTheme) {
+    const rate = Math.min(1, this._elapsed / MAGNET_LIFETIME);
+    ctx.save();
+    ctx.strokeStyle = theme.skillColors.magnet;
+    ctx.lineWidth = 2 / zoom;
+    for (const delay of [0, 0.3]) {
+      const t = (rate - delay) / (1 - delay);
+      if (t < 0 || t > 1) continue;
+      ctx.globalAlpha = Math.min(1, t * 4) * (1 - t * 0.5);
+      ctx.beginPath();
+      ctx.arc(this._position.x, this._position.y, Math.max(0.3, MAGNET_RANGE * (1 - t * t)), 0, Math.PI * 2);
+      ctx.stroke();
+    }
     ctx.restore();
   }
 }

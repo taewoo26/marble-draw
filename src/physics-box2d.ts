@@ -14,6 +14,14 @@ export class Box2dPhysics implements IPhysics {
   private deleteCandidates: Box2D.b2Body[] = [];
   /** 얼음 스킬로 멈춘 구슬 id → 남은 시간(ms, 물리 시간) */
   private frozen = new Map<number, number>();
+  /** 얼음이 풀린 구슬 id → 다시 얼 수 있게 되는 시각(ms, 물리 시간) */
+  private freezeImmuneUntil = new Map<number, number>();
+  /** 물리 시간 누적(ms). 얼음 면역 시각 계산에 쓴다 */
+  private simTime = 0;
+  /** 얼음 면역 시간(ms). 마지막 freeze 호출 값을 쓴다 */
+  private freezeImmunity = 0;
+  /** 반중력 스킬로 뜬 구슬 id → 남은 시간(ms, 물리 시간), 중력 배율, 위로 올라가는 속도 상한 */
+  private floating = new Map<number, { remaining: number; scale: number; maxUpSpeed: number }>();
 
   async init(): Promise<void> {
     this.Box2D = await Box2DFactory();
@@ -32,6 +40,8 @@ export class Box2dPhysics implements IPhysics {
     });
     this.marbleMap = {};
     this.frozen.clear();
+    this.freezeImmuneUntil.clear();
+    this.floating.clear();
   }
 
   createStage(stage: StageDef): void {
@@ -131,6 +141,8 @@ export class Box2dPhysics implements IPhysics {
       this.world.DestroyBody(marble);
       delete this.marbleMap[id];
       this.frozen.delete(id);
+      this.freezeImmuneUntil.delete(id);
+      this.floating.delete(id);
     }
   }
 
@@ -203,15 +215,59 @@ export class Box2dPhysics implements IPhysics {
     bodyB.SetAwake(true);
   }
 
-  freeze(ids: number[], durationMs: number): void {
+  freeze(ids: number[], durationMs: number, immunityMs: number): void {
+    this.freezeImmunity = immunityMs;
     ids.forEach((id) => {
       const body = this.marbleMap[id];
       if (!body) return;
-      // 이미 얼어 있으면 남은 시간이 긴 쪽으로 맞춘다
-      this.frozen.set(id, Math.max(this.frozen.get(id) ?? 0, durationMs));
-      body.SetGravityScale(0);
+      // 이미 얼어 있으면 연장하지 않고, 막 풀린 구슬은 면역 시간 동안 다시 얼지 않는다
+      if (this.frozen.has(id) || (this.freezeImmuneUntil.get(id) ?? -Infinity) > this.simTime) return;
+      this.frozen.set(id, durationMs);
+      this.applyGravityScale(id, body);
       this.stopBody(body);
     });
+  }
+
+  antiGravity(id: number, durationMs: number, scale: number, maxUpSpeed: number): void {
+    const body = this.marbleMap[id];
+    if (!body) return;
+    // 이미 떠 있으면 남은 시간이 긴 쪽으로 맞춘다
+    const remaining = Math.max(this.floating.get(id)?.remaining ?? 0, durationMs);
+    this.floating.set(id, { remaining, scale, maxUpSpeed });
+    this.applyGravityScale(id, body);
+    body.SetAwake(true);
+  }
+
+  magnet(id: number, targets: number[], range: number, power: number): void {
+    const src = this.marbleMap[id];
+    if (!src || range <= 0) return;
+    const sx = src.GetPosition().x;
+    const sy = src.GetPosition().y;
+
+    targets.forEach((targetId) => {
+      const body = this.marbleMap[targetId];
+      if (!body || body === src) return;
+      const dx = sx - body.GetPosition().x;
+      const dy = sy - body.GetPosition().y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist >= range || dist < 1e-6) return;
+      // 가까울수록 세다. (1 - 거리/범위)^2 로 줄어들고, 방향은 발동한 구슬 쪽
+      const falloff = 1 - dist / range;
+      const k = (falloff * falloff * power) / dist;
+      body.ApplyLinearImpulseToCenter(new this.Box2D.b2Vec2(dx * k, dy * k), true);
+    });
+  }
+
+  /**
+   * 얼음과 반중력은 둘 다 중력 배율을 바꾸므로 여기서 한 번에 정한다.
+   * 얼음이면 0, 떠 있으면 그 배율, 둘 다 아니면 원래대로 1
+   */
+  private applyGravityScale(id: number, body: Box2D.b2Body) {
+    if (this.frozen.has(id)) {
+      body.SetGravityScale(0);
+    } else {
+      body.SetGravityScale(this.floating.get(id)?.scale ?? 1);
+    }
   }
 
   private stopBody(body: Box2D.b2Body) {
@@ -219,26 +275,55 @@ export class Box2dPhysics implements IPhysics {
     body.SetAngularVelocity(0);
   }
 
-  /** 얼음 남은 시간을 물리 시간만큼 줄이고, 끝난 구슬은 원래대로 되돌린다 */
-  private updateFrozen(deltaSeconds: number) {
-    if (this.frozen.size === 0) return;
+  /** 얼음, 반중력의 남은 시간을 물리 시간만큼 줄이고, 끝난 구슬은 중력을 원래대로 되돌린다 */
+  private updateTimedEffects(deltaSeconds: number) {
+    if (this.frozen.size === 0 && this.floating.size === 0) return;
+    const dt = deltaSeconds * 1000;
+    const ended = new Set<number>();
+
     for (const [id, remaining] of this.frozen) {
       const body = this.marbleMap[id];
       if (!body) {
         this.frozen.delete(id);
         continue;
       }
-      const left = remaining - deltaSeconds * 1000;
+      const left = remaining - dt;
       if (left <= 0) {
         this.frozen.delete(id);
-        body.SetGravityScale(1);
-        body.SetAwake(true);
+        this.freezeImmuneUntil.set(id, this.simTime + this.freezeImmunity);
+        ended.add(id);
       } else {
         this.frozen.set(id, left);
         // 다른 구슬에 밀려 생긴 속도도 매 스텝 지워서 제자리에 머물게 한다
         this.stopBody(body);
       }
     }
+
+    for (const [id, state] of this.floating) {
+      const body = this.marbleMap[id];
+      if (!body) {
+        this.floating.delete(id);
+        continue;
+      }
+      state.remaining -= dt;
+      if (state.remaining <= 0) {
+        this.floating.delete(id);
+        ended.add(id);
+      } else if (!this.frozen.has(id)) {
+        // 너무 빨리 떠오르지 않게 위쪽 속도를 제한한다
+        const v = body.GetLinearVelocity();
+        if (v.y < -state.maxUpSpeed) {
+          body.SetLinearVelocity(new this.Box2D.b2Vec2(v.x, -state.maxUpSpeed));
+        }
+      }
+    }
+
+    ended.forEach((id) => {
+      const body = this.marbleMap[id];
+      if (!body) return;
+      this.applyGravityScale(id, body);
+      body.SetAwake(true);
+    });
   }
 
   start(): void {
@@ -264,7 +349,8 @@ export class Box2dPhysics implements IPhysics {
     });
     this.deleteCandidates = [];
 
-    this.updateFrozen(deltaSeconds);
+    this.simTime += deltaSeconds * 1000;
+    this.updateTimedEffects(deltaSeconds);
     this.world.Step(deltaSeconds, 6, 2);
 
     for (let i = this.entities.length - 1; i >= 0; i--) {

@@ -13,14 +13,25 @@ export enum Skills {
   Boost,
   Swap,
   Freeze,
+  AntiGravity,
+  Magnet,
 }
 
-/** 스킬이 발동할 때 어떤 스킬이 나올지의 가중치. 발동 확률 자체는 marble.ts 의 _skillRate 가 정한다 */
-export const SKILL_WEIGHTS: Record<Exclude<Skills, Skills.None>, number> = {
-  [Skills.Impact]: 25,
-  [Skills.Boost]: 25,
-  [Skills.Swap]: 25,
-  [Skills.Freeze]: 25,
+/** None 을 뺀 스킬 이름 ('Impact', 'Boost', ...) */
+export type SkillName = Exclude<keyof typeof Skills, 'None'>;
+
+/**
+ * 스킬이 발동할 때 어떤 스킬이 나올지의 가중치. 0 이면 그 스킬은 나오지 않는다.
+ * 발동 확률 자체는 marble.ts 의 _skillRate 가 정한다.
+ * 특정 스킬만 보고 싶으면 나머지를 0 으로 둔다 (예: Magnet 만 1)
+ */
+export const SKILL_WEIGHTS: Record<SkillName, number> = {
+  Impact: 1,
+  Boost: 1,
+  Swap: 1,
+  Freeze: 1,
+  AntiGravity: 1,
+  Magnet: 1,
 };
 
 /** 부스터: 아래(+y) 방향으로 더하는 속도. 질량과 무관하게 같은 만큼 빨라진다 */
@@ -32,6 +43,18 @@ export const SWAP_RANGE = 5;
 /** 얼음: 멈추게 하는 반경과 시간(ms, 물리 시간 기준) */
 export const FREEZE_RADIUS = 3;
 export const FREEZE_DURATION = 1000;
+/**
+ * 얼음이 풀린 구슬은 이 시간(ms, 물리 시간) 동안 다시 얼지 않는다.
+ * 없으면 몰려 있는 구슬들이 서로를 계속 다시 얼려서 영원히 멈출 수 있다
+ */
+export const FREEZE_IMMUNITY = 1500;
+/** 반중력: 중력 배율(음수면 위로 뜬다), 유지 시간(ms, 물리 시간 기준), 위로 올라가는 속도 상한 */
+export const ANTI_GRAVITY_SCALE = -0.5;
+export const ANTI_GRAVITY_DURATION = 700;
+export const ANTI_GRAVITY_MAX_UP_SPEED = 3;
+/** 자석: 끌어당기는 범위, 세기(가장 가까울 때 임펄스. 멀수록 약해진다) */
+export const MAGNET_RANGE = 5;
+export const MAGNET_POWER = 1;
 
 /**
  * 개발 확인용. null 이 아니면 스킬이 발동할 때 항상 이 스킬이 나온다 (예: Skills.Swap).
@@ -47,6 +70,8 @@ export const SKILL_LABELS: Partial<Record<Skills, string>> = {
   [Skills.Boost]: '💨 부스터!',
   [Skills.Swap]: '🔄 자리 바꾸기!',
   [Skills.Freeze]: '❄️ 얼음!',
+  [Skills.AntiGravity]: '🎈 둥실!',
+  [Skills.Magnet]: '🧲 자석!',
 };
 /** 스킬 이름이 떠 있는 시간(ms) */
 export const SKILL_LABEL_DURATION = 800;
@@ -82,6 +107,8 @@ export const Themes: Record<string, ColorTheme> = {
       boost: '#e67e22',
       swap: '#8e44ad',
       freeze: '#3a9fd8',
+      antiGravity: '#d6336c',
+      magnet: '#c0392b',
     },
     coolTimeIndicator: '#999',
     entity: {
@@ -121,6 +148,8 @@ export const Themes: Record<string, ColorTheme> = {
       boost: '#ffb347',
       swap: '#d98cff',
       freeze: '#8fe3ff',
+      antiGravity: '#ff9ecb',
+      magnet: '#ff6b6b',
     },
     coolTimeIndicator: 'red',
     entity: {

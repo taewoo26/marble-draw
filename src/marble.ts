@@ -1,25 +1,12 @@
-import { DEBUG_FORCE_SKILL, DEBUG_SKILL_RATE, SKILL_WEIGHTS, Skills, STUCK_DELAY, Themes } from './data/constants';
+import { DEBUG_SKILL_RATE, Skills, STUCK_DELAY, Themes } from './data/constants';
 import type { IPhysics } from './IPhysics';
 import options from './options';
+import { pickSkill } from './skillLogic';
 import type { ColorTheme } from './types/ColorTheme';
 import type { VectorLike } from './types/VectorLike';
 import { transformGuard } from './utils/transformGuard';
 import { rad } from './utils/utils';
 import { Vector } from './utils/Vector';
-
-/** 발동한 스킬의 종류를 SKILL_WEIGHTS 가중치대로 고른다 */
-function pickSkill(): Skills {
-  if (DEBUG_FORCE_SKILL !== null) return DEBUG_FORCE_SKILL;
-  const entries = Object.entries(SKILL_WEIGHTS).map(([skill, weight]) => [Number(skill) as Skills, weight] as const);
-  const total = entries.reduce((sum, [, weight]) => sum + Math.max(0, weight), 0);
-  if (total <= 0) return Skills.Impact;
-  let r = Math.random() * total;
-  for (const [skill, weight] of entries) {
-    r -= Math.max(0, weight);
-    if (r < 0) return skill;
-  }
-  return entries[entries.length - 1][0];
-}
 
 export class Marble {
   type = 'marble' as const;

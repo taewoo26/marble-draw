@@ -28,8 +28,20 @@ export interface IPhysics {
   /** 두 구슬의 위치와 속도를 맞바꾼다 */
   swapMarbles(a: number, b: number): void;
 
-  /** 구슬들을 durationMs(물리 시간) 동안 멈춘다. 속도 0, 중력 무시. 충돌은 그대로 받는다 */
-  freeze(ids: number[], durationMs: number): void;
+  /**
+   * 구슬들을 durationMs(물리 시간) 동안 멈춘다. 속도 0, 중력 무시. 충돌은 그대로 받는다.
+   * 이미 얼어 있거나, 풀린 지 immunityMs 가 지나지 않은 구슬은 건너뛴다
+   */
+  freeze(ids: number[], durationMs: number, immunityMs: number): void;
+
+  /**
+   * 구슬의 중력 배율을 durationMs(물리 시간) 동안 scale 로 바꾼다. 음수면 위로 뜬다.
+   * 위로 올라가는 속도는 maxUpSpeed 를 넘지 않는다. 얼음과 겹치면 얼음이 우선한다
+   */
+  antiGravity(id: number, durationMs: number, scale: number, maxUpSpeed: number): void;
+
+  /** Impact 의 반대. targets 를 id 구슬 쪽으로 끌어당긴다. 가까울수록 세고 range 에서 0 이 된다 */
+  magnet(id: number, targets: number[], range: number, power: number): void;
 
   start(): void;
 

@@ -4,16 +4,11 @@ import {
   BANNER_COOLDOWN,
   BANNER_DURATION,
   BANNER_START_DELAY,
-  BOOST_MAX_SPEED,
-  BOOST_SPEED,
   canvasHeight,
   canvasWidth,
-  FREEZE_DURATION,
-  FREEZE_RADIUS,
   initialZoom,
   SKILL_LABELS,
   Skills,
-  SWAP_RANGE,
   Themes,
   zoomThreshold,
 } from './data/constants';
@@ -29,7 +24,16 @@ import { Box2dPhysics } from './physics-box2d';
 import { ProgressMap } from './progressMap';
 import { RankRenderer } from './rankRenderer';
 import { type AdHit, RouletteRenderer } from './rouletteRenderer';
-import { BoostEffect, FreezeEffect, SkillEffect, SkillLabelEffect, SwapEffect } from './skillEffect';
+import {
+  AntiGravityEffect,
+  BoostEffect,
+  FreezeEffect,
+  MagnetEffect,
+  SkillEffect,
+  SkillLabelEffect,
+  SwapEffect,
+} from './skillEffect';
+import { applySkill } from './skillLogic';
 import { type SoundName, sound } from './sound';
 import type { RoundAd } from './types/Ad.type';
 import type { ColorTheme } from './types/ColorTheme';
@@ -59,6 +63,8 @@ const SKILL_SOUNDS: Partial<Record<Skills, SoundName>> = {
   [Skills.Boost]: 'boost',
   [Skills.Swap]: 'swap',
   [Skills.Freeze]: 'freeze',
+  [Skills.AntiGravity]: 'antiGravity',
+  [Skills.Magnet]: 'magnet',
 };
 const RANK_MARGIN = 0.25;
 
@@ -317,19 +323,6 @@ export class Roulette extends EventTarget {
     this._checkFinish();
   }
 
-  /** 아직 골인하지 않은 다른 구슬 중 marble 에서 range 안에 있는 구슬들 */
-  private _marblesNear(marble: Marble, range: number): Marble[] {
-    const goalY = this._stage?.goalY ?? Infinity;
-    const rangeSq = range * range;
-    const { x, y } = marble;
-    return this._marbles.filter((m) => {
-      if (m === marble || m.y > goalY) return false;
-      const dx = m.x - x;
-      const dy = m.y - y;
-      return dx * dx + dy * dy <= rangeSq;
-    });
-  }
-
   /** 스킬이 실제로 발동한 뒤: 효과음을 내고 구슬 위에 스킬 이름을 잠깐 띄운다 */
   private _onSkillUsed(marble: Marble, skill: Skills) {
     const soundName = SKILL_SOUNDS[skill];
@@ -347,37 +340,45 @@ export class Roulette extends EventTarget {
         return this._theme.skillColors.swap;
       case Skills.Freeze:
         return this._theme.skillColors.freeze;
+      case Skills.AntiGravity:
+        return this._theme.skillColors.antiGravity;
+      case Skills.Magnet:
+        return this._theme.skillColors.magnet;
       default:
         return this._theme.skillColor;
     }
   }
 
-  /** Impact 외의 새 스킬(부스터, 자리 바꾸기, 얼음)을 발동한다. 실제로 아무 일도 없었으면 false */
+  /**
+   * Impact 외의 새 스킬을 발동한다. 물리 처리는 skillLogic.ts 가 하고 여기서는 이펙트만 붙인다.
+   * 실제로 아무 일도 없었으면 false
+   */
   private _useSkill(marble: Marble, skill: Skills): boolean {
+    if (!this._stage) return false;
+    const goalY = this._stage.goalY;
+    const candidates = this._marbles.filter((m) => m.y <= goalY);
+    // 이펙트가 발동 위치를 쓰므로 물리 처리 전에 기억해 둔다 (자리 바꾸기는 위치가 바뀐다)
+    const origin = { x: marble.x, y: marble.y };
+    const result = applySkill(this.physics, marble, skill, candidates);
+    if (!result) return false;
+
     switch (skill) {
       case Skills.Boost:
         this._effects.push(new BoostEffect(marble));
-        this.physics.boost(marble.id, BOOST_SPEED, BOOST_MAX_SPEED);
         break;
-      case Skills.Swap: {
-        const candidates = this._marblesNear(marble, SWAP_RANGE);
-        if (candidates.length === 0) return false;
-        const other = candidates[Math.floor(Math.random() * candidates.length)];
-        this._effects.push(new SwapEffect(marble, other));
-        this.physics.swapMarbles(marble.id, other.id);
+      case Skills.Swap:
+        // 바꾼 뒤에는 발동한 구슬이 상대의 원래 자리에 있다
+        this._effects.push(new SwapEffect(origin, marble));
         break;
-      }
-      case Skills.Freeze: {
-        this._effects.push(new FreezeEffect(marble.x, marble.y));
-        const targets = this._marblesNear(marble, FREEZE_RADIUS);
-        if (targets.length > 0) {
-          this.physics.freeze(
-            targets.map((m) => m.id),
-            FREEZE_DURATION
-          );
-        }
+      case Skills.Freeze:
+        this._effects.push(new FreezeEffect(origin.x, origin.y));
         break;
-      }
+      case Skills.AntiGravity:
+        this._effects.push(new AntiGravityEffect(marble, goalY));
+        break;
+      case Skills.Magnet:
+        this._effects.push(new MagnetEffect(origin.x, origin.y));
+        break;
     }
     return true;
   }
