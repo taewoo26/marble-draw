@@ -3,10 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <script defer src="https://umami.lazygyu.net/script.js"
-          data-website-id="205aee0d-30b6-4c69-a053-0c72c8377be0"></script>
-
-  <title>Marble Roulette 마블룰렛</title>
+  <title>Marble Draw 구슬 추첨기</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="apple-touch-icon" sizes="57x57" href="assets/apple-icon-57x57.png">
   <link rel="apple-touch-icon" sizes="60x60" href="assets/apple-icon-60x60.png">
@@ -28,10 +25,10 @@
   <meta name="theme-color" content="#ffffff">
 
   <meta name="description" content="구슬을 굴려 당첨자를 뽑는 추첨기">
-  <meta property="og:url" content="https://lazygyu.github.io/roulette/">
-  <meta property="og:title" content="Marble Roulette">
-  <meta property="og:description" content="마블 룰렛 공식 사이트">
-  <meta property="og:site_name" content="lazygyu.github.io">
+  <meta property="og:url" content="https://taewoo26.github.io/marble-draw/">
+  <meta property="og:title" content="Marble Draw">
+  <meta property="og:description" content="구슬을 굴려 당첨자를 뽑는 추첨기">
+  <meta property="og:site_name" content="taewoo26.github.io">
   <meta property="og:type" content="website">
 
   <link rel='stylesheet' href='assets/style.scss' />
@@ -44,9 +41,6 @@
   function gtag() {
     dataLayer.push(arguments);
   }
-
-  gtag('js', new Date());
-  gtag('config', 'G-5899C1DJM0');
 
   function getNames() {
     const value = document.querySelector('#in_names').value.trim();
@@ -337,7 +331,7 @@
     checkNotice();
   }
 </script>
-<h1 class="sr-only">Marble Roulette™ 마블 룰렛™ - 랜덤 추첨기</h1>
+<h1 class="sr-only">Marble Draw - 구슬 추첨기</h1>
 <div id="settings" class="settings">
   <div class="right">
     <button id="btnToggleSettings" class="btn-toggle-settings">
@@ -352,9 +346,7 @@
         </label>
         <div class="map-picker">
           <select id="sltMap"></select>
-          <button id="btnRemoveMap" class="btn-map-action" type="button" hidden title="Remove this map" data-trans="title">✕</button>
-          <a id="lnkMoreMaps" class="btn-map-action" href="https://marblerouletteshop.com/maps" target="_blank" rel="noopener" title="Get more maps" data-trans="title">+</a>
-        </div>
+          <button id="btnRemoveMap" class="btn-map-action" type="button" hidden title="Remove this map" data-trans="title">✕</button>        </div>
       </div>
       <div class="row row-toggles">
         <div class='toggle-item'>
@@ -408,10 +400,6 @@
       <button id="btnNotice">
         <i class="icon megaphone"></i>
       </button>
-      <a href='https://marblerouletteshop.com' target='_blank' id="btnShop" class='btn' title='MarbleRoulette Shop'>
-        <i class="icon shop"></i>
-        <span>Shop</span>
-      </a>
       <div class="sep"></div>
       <button id="btnShuffle">
         <i class="icon shuffle"></i>
@@ -427,20 +415,15 @@
 <div id="notice">
   <h2>Notice</h2>
   <div class="notice-body">
-    <h3>맵 공유마당이 열렸습니다</h3>
-    <p>
-      직접 만든 맵을 올리고, 다른 사람이 만든 맵을 받아 마블 룰렛에서 플레이할 수 있습니다.<br />
-      맵은 웹 맵 에디터로 누구나 만들 수 있고, 심사를 거쳐 공개됩니다.
-      받은 맵은 맵 목록의 "다운로드한 맵"에서 고르면 됩니다.<br />
-      <a href='https://marblerouletteshop.com/maps' target='_blank'>맵 공유마당 둘러보기</a> ·
-      <a href='https://marblerouletteshop.com/map-editor' target='_blank'>맵 만들기</a>
-    </p>
+    <h3>Marble Draw에 오신 걸 환영해요</h3>
+    <p>이름을 입력하고 Start를 누르면 구슬이 굴러가며 당첨자를 뽑아요.<br />
+    이 사이트는 lazygyu님의 오픈소스 Marble Roulette(MIT 라이선스)를 기반으로 만들었어요.</p>
   </div>
   <div class="notice-action">
     <button id="closeNotice" data-trans>Close</button>
   </div>
 </div>
-<div class="copyright">&copy; 2022-2026. 마블 룰렛™ by <a href="https://lazygyu.net" target="_blank">lazygyu</a> | <a href="https://marblerouletteshop.com/advertise" target="_blank">광고문의</a>
+<div class="copyright">&copy; 2026 taewoo26 · based on <a href="https://github.com/lazygyu/roulette" target="_blank">Marble Roulette by lazygyu</a>
 </div>
 </body>
 </html>

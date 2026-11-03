@@ -20,16 +20,16 @@ const { readFileSync, writeFileSync } = require('node:fs');
 // 캐시 이름을 필터링하는 이유: github.io는 origin을 다른 프로젝트 페이지와
 // 공유한다. caches.keys()를 전부 지우면 남의 프로젝트 캐시까지 지운다.
 // 'images'와 'static-resources'는 옛 runtimeCaching의 cacheName이고,
-// precache는 'workbox-precache-v2-https://lazygyu.github.io/roulette/' 형태다.
-const isOurCache = (key) => key === 'images' || key === 'static-resources' || key.includes('/roulette/');
+// precache는 'workbox-precache-v2-https://taewoo26.github.io/marble-draw/' 형태다.
+const isOurCache = (key) => key === 'images' || key === 'static-resources' || key.includes('/marble-draw/');
 
 // 이 필터가 이 스크립트에서 가장 미묘한 부분이라 빌드할 때마다 점검한다.
 // 아래 killSwitch에는 이 함수를 toString()으로 그대로 심으므로,
 // 여기서 통과한 것과 실제로 배포되는 것이 항상 같다.
-assert(isOurCache('workbox-precache-v2-https://lazygyu.github.io/roulette/'), 'precache를 지워야 한다');
+assert(isOurCache('workbox-precache-v2-https://taewoo26.github.io/marble-draw/'), 'precache를 지워야 한다');
 assert(isOurCache('images'), '옛 runtimeCaching 캐시를 지워야 한다');
 assert(isOurCache('static-resources'), '옛 runtimeCaching 캐시를 지워야 한다');
-assert(!isOurCache('workbox-precache-v2-https://lazygyu.github.io/other-project/'), '남의 캐시는 두어야 한다');
+assert(!isOurCache('workbox-precache-v2-https://taewoo26.github.io/other-project/'), '남의 캐시는 두어야 한다');
 assert(!isOurCache('some-unrelated-cache'), '남의 캐시는 두어야 한다');
 
 const killSwitch = `self.addEventListener('install', () => self.skipWaiting());
