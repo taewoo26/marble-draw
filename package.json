@@ -14,7 +14,7 @@
   "scripts": {
     "lint": "biome check --fix src/",
     "dev": "parcel index.html --port 1235",
-    "build": "parcel build index.html --public-url /marble-draw/ && node scripts/build-sw.js && cp google74e2523b20090efe.html dist/",
+    "build": "parcel build index.html --public-url /marble-draw/ && node scripts/build-sw.js && cp google74e2523b20090efe.html sitemap.xml dist/",
     "simulate": "tsx scripts/simulate.ts",
     "simulate:skills": "tsx scripts/simulate-skills.ts",
     "analyze:maps": "tsx scripts/analyze-maps.ts"
