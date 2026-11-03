@@ -3,6 +3,10 @@ import {
   PINBALL_BUMPER_RADIUS,
   PINBALL_BUMPER_RESTITUTION,
   PINBALL_SPINNER_SPEED,
+  WINDMILL_ARM,
+  WINDMILL_PIN_RADIUS,
+  WINDMILL_SPEEDS,
+  WINDMILL_THICKNESS,
   ZIGZAG_BOTTLENECK_WIDTH,
   ZIGZAG_LEVEL_GAP,
   ZIGZAG_LEVELS,
@@ -11,7 +15,7 @@ import {
   ZIGZAG_PIN_RADIUS,
   ZIGZAG_SLOPE_DROP,
 } from './constants';
-import { circle, spinner, wall } from './mapHelpers';
+import { circle, spinner, wall, windmill } from './mapHelpers';
 
 export type AdBoard = {
   x: number;
@@ -121,6 +125,51 @@ function zigzagStairs(): MapEntity[] {
       result.push(circle(ZIGZAG_LEFT + ZIGZAG_GAP / 2, pinY, ZIGZAG_PIN_RADIUS));
     }
   }
+  return result;
+}
+
+/** Windmill Village 첫 풍차 층 y, 층 간격 */
+const WINDMILL_TOP = 24;
+const WINDMILL_LAYER_GAP = 12;
+/** Windmill Village 마지막 풍차 층 아래, 결승 깔때기가 시작하는 y */
+const WINDMILL_BOTTOM = WINDMILL_TOP + (WINDMILL_SPEEDS.length - 1) * WINDMILL_LAYER_GAP + 6;
+
+/**
+ * Windmill Village 풍차와 핀 (벽 x 3 ~ 23).
+ * 풍차가 2개인 층은 x 8, 18 에, 3개인 층은 x 6.5, 13, 19.5 에 둔다. 날개 끝과 벽 사이는 1.5 이상 띄워
+ * 거대화한 구슬(지름 0.8)도 벽과 날개 사이에 끼지 않게 한다.
+ * 고정 핀은 풍차 사이(같은 층)와 층 사이(가운데 높이)에 둔다. 층 사이 양쪽 벽에는 안쪽으로 기운 선반이 있다
+ */
+function windmillVillage(): MapEntity[] {
+  const result: MapEntity[] = [];
+  WINDMILL_SPEEDS.forEach((speeds, layer) => {
+    const y = WINDMILL_TOP + layer * WINDMILL_LAYER_GAP;
+    const xs = speeds.length === 2 ? [8, 18] : [6.5, 13, 19.5];
+    speeds.forEach((speed, i) => {
+      result.push(...windmill(xs[i], y, WINDMILL_ARM, WINDMILL_THICKNESS, speed));
+    });
+    // 같은 층의 풍차 사이 핀 (풍차 2개인 층만. 3개인 층은 날개 사이가 좁아 핀을 두지 않는다)
+    if (speeds.length === 2) {
+      result.push(circle(13, y, WINDMILL_PIN_RADIUS));
+    }
+    // 아래층과의 사이: 가운데 핀 2개, 양쪽 벽에는 안쪽으로 기운 짧은 선반.
+    // 선반이 없으면 벽을 따라 풍차를 피해 곧장 떨어지는 구슬이 생긴다.
+    // 마지막 층 아래는 결승 깔때기가 시작되는 곳이라 두지 않는다 (깔때기 벽과 쐐기를 만들어 구슬이 막힌다)
+    if (layer === WINDMILL_SPEEDS.length - 1) return;
+    const pinY = y + WINDMILL_LAYER_GAP / 2;
+    const pinXs = layer % 2 === 0 ? [10.5, 15.5] : [9.75, 16.25];
+    for (const x of pinXs) result.push(circle(x, pinY, WINDMILL_PIN_RADIUS));
+    result.push(
+      wall([
+        [3, pinY - 1],
+        [6.5, pinY + 0.5],
+      ]),
+      wall([
+        [23, pinY - 1],
+        [19.5, pinY + 0.5],
+      ])
+    );
+  });
   return result;
 }
 
@@ -3182,6 +3231,39 @@ export const stages: StageDef[] = [
         [13 + ZIGZAG_BOTTLENECK_WIDTH / 2, ZIGZAG_BOTTOM + 17],
       ]),
       ...zigzagStairs(),
+    ],
+  },
+  {
+    // 층마다 방향과 속도가 다른 십자 풍차 사이를 고정 핀에 부딪히며 내려간다
+    title: 'Windmill Village',
+    goalY: WINDMILL_BOTTOM + 15,
+    zoomY: WINDMILL_BOTTOM + 10,
+    entities: [
+      // 시작 깔때기(x 9.25 ~ 16.5)는 폭 2 입구(x 12 ~ 14)로 모였다가 풍차 구간(x 3 ~ 23)으로 넓어지고,
+      // 마지막 층 아래에서 결승 통로(x 12.2 ~ 13.8, 폭 1.6)로 모인다.
+      // 통로가 구슬 지름의 2배 안팎이면 구슬들이 아치처럼 서로 버티며 막히므로 3배 이상으로 둔다
+      wall([
+        [16.5, -300],
+        [9.25, -300],
+        [9.25, 6],
+        [12, 10],
+        [12, 11],
+        [3, 17],
+        [3, WINDMILL_BOTTOM],
+        [12.2, WINDMILL_BOTTOM + 10],
+        [12.2, WINDMILL_BOTTOM + 16],
+      ]),
+      wall([
+        [16.5, -300],
+        [16.5, 6],
+        [14, 10],
+        [14, 11],
+        [23, 17],
+        [23, WINDMILL_BOTTOM],
+        [13.8, WINDMILL_BOTTOM + 10],
+        [13.8, WINDMILL_BOTTOM + 16],
+      ]),
+      ...windmillVillage(),
     ],
   },
 ];

@@ -119,6 +119,24 @@ export const ZIGZAG_BOTTLENECK_WIDTH = 1;
 export const ZIGZAG_MIXER_ROWS = 4;
 export const ZIGZAG_MIXER_RADIUS = 0.5;
 
+/**
+ * 맵 'Windmill Village': 층별 풍차 회전 속도(라디안/초, 양수 = 시계 방향. 층마다 풍차 2 ~ 3개),
+ * 풍차 날개 길이(중심에서 끝까지), 날개 두께(절반), 고정 핀 반지름
+ */
+export const WINDMILL_SPEEDS: number[][] = [
+  [1.2, -1.2],
+  [2, -1, 2],
+  [-2.5, 1.5],
+  [-1.5, 2.5, -1.5],
+  [0.8, -2],
+  [-2, 1.2, -2],
+  [1.8, -0.9],
+  [-1, 3, -1],
+];
+export const WINDMILL_ARM = 2;
+export const WINDMILL_THICKNESS = 0.15;
+export const WINDMILL_PIN_RADIUS = 0.3;
+
 export const DefaultEntityColor = {
   box: 'cyan',
   circle: 'yellow',
