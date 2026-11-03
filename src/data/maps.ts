@@ -1,5 +1,16 @@
 import type { MapEntity } from '../types/MapEntity.type';
-import { PINBALL_BUMPER_RADIUS, PINBALL_BUMPER_RESTITUTION, PINBALL_SPINNER_SPEED } from './constants';
+import {
+  PINBALL_BUMPER_RADIUS,
+  PINBALL_BUMPER_RESTITUTION,
+  PINBALL_SPINNER_SPEED,
+  ZIGZAG_BOTTLENECK_WIDTH,
+  ZIGZAG_LEVEL_GAP,
+  ZIGZAG_LEVELS,
+  ZIGZAG_MIXER_RADIUS,
+  ZIGZAG_MIXER_ROWS,
+  ZIGZAG_PIN_RADIUS,
+  ZIGZAG_SLOPE_DROP,
+} from './constants';
 import { circle, spinner, wall } from './mapHelpers';
 
 export type AdBoard = {
@@ -60,6 +71,57 @@ function pinballBumpers(): MapEntity[] {
     }
   }
   return bumpers;
+}
+
+/** Zigzag Stairs 의 첫 경사판 y, 계단 구간 양쪽 벽 x */
+const ZIGZAG_TOP = 17 + ZIGZAG_MIXER_ROWS * 3 + 1;
+const ZIGZAG_LEFT = 6;
+const ZIGZAG_RIGHT = 20;
+/** 경사판이 내려가는 쪽 끝에 남기는 틈의 폭 */
+const ZIGZAG_GAP = 2.5;
+/** Zigzag Stairs 의 마지막 경사판 아래, 결승 깔때기가 시작하는 y */
+const ZIGZAG_BOTTOM = ZIGZAG_TOP + ZIGZAG_LEVELS * ZIGZAG_LEVEL_GAP;
+
+/**
+ * Zigzag Stairs 경사판: 왼쪽 벽과 오른쪽 벽 사이에서 좌우로 번갈아 기운다.
+ * 내려가는 쪽 끝에 폭 ZIGZAG_GAP 틈을 남기고, 틈 가운데에 작은 핀을 둬서 떨어지는 방향이 갈리게 한다.
+ * 핀 양옆 통로는 거대화한 구슬(지름 0.8)도 지나갈 수 있다.
+ * 끝에 턱(벽)을 세우면 느린 구슬이 모서리에 갇히므로 턱 대신 핀을 쓴다
+ */
+function zigzagStairs(): MapEntity[] {
+  const result: MapEntity[] = [];
+  // 계단 위 범퍼: 입구를 먼저 지난 구슬이 계단에서 계속 앞서가지 않도록 순서를 섞는다.
+  // 3칸 간격 줄을 세 가지 위치로 번갈아 놓아 곧장 떨어지는 세로 줄이 없게 한다
+  for (let row = 0; row < ZIGZAG_MIXER_ROWS; row++) {
+    const y = 17 + row * 3;
+    for (let x = ZIGZAG_LEFT + 1.5 + (row % 3); x <= ZIGZAG_RIGHT - 1.5; x += 3) {
+      result.push(circle(x, y, ZIGZAG_MIXER_RADIUS, 0.5));
+    }
+  }
+  for (let level = 0; level < ZIGZAG_LEVELS; level++) {
+    const y = ZIGZAG_TOP + level * ZIGZAG_LEVEL_GAP;
+    const pinY = y + ZIGZAG_SLOPE_DROP + 0.8;
+    if (level % 2 === 0) {
+      // 왼쪽 벽에서 오른쪽 아래로
+      result.push(
+        wall([
+          [ZIGZAG_LEFT, y],
+          [ZIGZAG_RIGHT - ZIGZAG_GAP, y + ZIGZAG_SLOPE_DROP],
+        ])
+      );
+      result.push(circle(ZIGZAG_RIGHT - ZIGZAG_GAP / 2, pinY, ZIGZAG_PIN_RADIUS));
+    } else {
+      // 오른쪽 벽에서 왼쪽 아래로
+      result.push(
+        wall([
+          [ZIGZAG_RIGHT, y],
+          [ZIGZAG_LEFT + ZIGZAG_GAP, y + ZIGZAG_SLOPE_DROP],
+        ])
+      );
+      result.push(circle(ZIGZAG_LEFT + ZIGZAG_GAP / 2, pinY, ZIGZAG_PIN_RADIUS));
+    }
+  }
+  return result;
 }
 
 export const stages: StageDef[] = [
@@ -3088,6 +3150,38 @@ export const stages: StageDef[] = [
       spinner(16.5, 116, 2.2, 0.15, -PINBALL_SPINNER_SPEED),
       spinner(9.5, 126, 2.2, 0.15, -PINBALL_SPINNER_SPEED),
       spinner(16.5, 126, 2.2, 0.15, PINBALL_SPINNER_SPEED),
+    ],
+  },
+  {
+    // 좌우로 번갈아 기운 경사판 9단을 굴러 내려가고, 결승 직전 좁은 병목을 지난다
+    title: 'Zigzag Stairs',
+    goalY: ZIGZAG_BOTTOM + 16,
+    zoomY: ZIGZAG_BOTTOM + 10,
+    entities: [
+      // 시작 깔때기(x 9.25 ~ 16.5)는 폭 2 입구(x 12 ~ 14)로 모였다가 범퍼·계단 구간(x 6 ~ 20)으로 넓어진다.
+      // 계단이 끝나면 병목(폭 ZIGZAG_BOTTLENECK_WIDTH)으로 모인다
+      wall([
+        [16.5, -300],
+        [9.25, -300],
+        [9.25, 6],
+        [12, 10],
+        [12, 11],
+        [ZIGZAG_LEFT, 15],
+        [ZIGZAG_LEFT, ZIGZAG_BOTTOM + 2],
+        [13 - ZIGZAG_BOTTLENECK_WIDTH / 2, ZIGZAG_BOTTOM + 10],
+        [13 - ZIGZAG_BOTTLENECK_WIDTH / 2, ZIGZAG_BOTTOM + 17],
+      ]),
+      wall([
+        [16.5, -300],
+        [16.5, 6],
+        [14, 10],
+        [14, 11],
+        [ZIGZAG_RIGHT, 15],
+        [ZIGZAG_RIGHT, ZIGZAG_BOTTOM + 2],
+        [13 + ZIGZAG_BOTTLENECK_WIDTH / 2, ZIGZAG_BOTTOM + 10],
+        [13 + ZIGZAG_BOTTLENECK_WIDTH / 2, ZIGZAG_BOTTOM + 17],
+      ]),
+      ...zigzagStairs(),
     ],
   },
 ];

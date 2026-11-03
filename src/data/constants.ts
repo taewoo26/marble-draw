@@ -107,6 +107,18 @@ export const PINBALL_BUMPER_RADIUS = 0.6;
 export const PINBALL_BUMPER_RESTITUTION = 0.8;
 export const PINBALL_SPINNER_SPEED = 2.5;
 
+/**
+ * 맵 'Zigzag Stairs': 경사판 층 수, 층 간격, 경사판 한 장의 높이 차(클수록 가파르고 빠름),
+ * 경사판 끝 핀 반지름, 결승 직전 병목 폭, 계단 위 섞는 범퍼 줄 수·반지름
+ */
+export const ZIGZAG_LEVELS = 9;
+export const ZIGZAG_LEVEL_GAP = 7;
+export const ZIGZAG_SLOPE_DROP = 4.5;
+export const ZIGZAG_PIN_RADIUS = 0.2;
+export const ZIGZAG_BOTTLENECK_WIDTH = 1;
+export const ZIGZAG_MIXER_ROWS = 4;
+export const ZIGZAG_MIXER_RADIUS = 0.5;
+
 export const DefaultEntityColor = {
   box: 'cyan',
   circle: 'yellow',
