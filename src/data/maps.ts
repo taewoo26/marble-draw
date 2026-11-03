@@ -3,6 +3,8 @@ import {
   BRICK_LAYER_DURABILITY,
   BRICK_LAYER_GAP,
   BRICK_ROWS_PER_LAYER,
+  CROSSROADS_DETOUR_SHELVES,
+  CROSSROADS_DOOR_SPEED,
   PINBALL_BUMPER_RADIUS,
   PINBALL_BUMPER_RESTITUTION,
   PINBALL_SPINNER_SPEED,
@@ -210,6 +212,35 @@ function brickLayers(): MapEntity[] {
       }
     }
   });
+  return result;
+}
+
+/** Crossroads 우회로 첫 선반 y, 선반 간격 */
+const CROSS_SHELF_TOP = 25;
+const CROSS_SHELF_GAP = 6;
+/** Crossroads 두 길이 합쳐지는 y */
+const CROSS_MERGE = CROSS_SHELF_TOP + CROSSROADS_DETOUR_SHELVES * CROSS_SHELF_GAP;
+
+/**
+ * Crossroads 우회로(x 3 ~ 12) 선반: 왼쪽 벽과 지름길 벽(x 12) 사이에서 좌우로 번갈아 기운다.
+ * 내려가는 쪽 끝에 폭 1.5 틈을 남긴다 (거대화한 구슬도 지나갈 수 있다)
+ */
+function crossroadsDetour(): MapEntity[] {
+  const result: MapEntity[] = [];
+  for (let i = 0; i < CROSSROADS_DETOUR_SHELVES; i++) {
+    const y = CROSS_SHELF_TOP + i * CROSS_SHELF_GAP;
+    result.push(
+      i % 2 === 0
+        ? wall([
+            [3, y],
+            [10.5, y + 2.5],
+          ])
+        : wall([
+            [12, y],
+            [4.5, y + 2.5],
+          ])
+    );
+  }
   return result;
 }
 
@@ -3336,6 +3367,69 @@ export const stages: StageDef[] = [
         [13.8, BRICK_BOTTOM + 16],
       ]),
       ...brickLayers(),
+    ],
+  },
+  {
+    // 바닥 가운데 구멍으로 빠지면 짧은 지름길, 지나치면 긴 우회로. 구멍 위에서 회전문이 천천히 돈다
+    title: 'Crossroads',
+    goalY: CROSS_MERGE + 15,
+    zoomY: CROSS_MERGE + 10,
+    entities: [
+      // 시작 깔때기(x 9.25 ~ 16.5)는 폭 2 입구(x 12 ~ 14)로 모인다. 입구 양쪽 벽은 위를 덮는 지붕이 되어
+      // 바깥 벽(x 3, x 23)으로 이어지고, 두 길이 합쳐진 뒤 결승 통로(x 12.2 ~ 13.8)로 모인다
+      wall([
+        [16.5, -300],
+        [9.25, -300],
+        [9.25, 6],
+        [12, 10],
+        [12, 11],
+        [3, 13],
+        [3, CROSS_MERGE],
+        [12.2, CROSS_MERGE + 10],
+        [12.2, CROSS_MERGE + 16],
+      ]),
+      // 입구 오른쪽 벽(지붕) → 갈림길 바닥 A(오른쪽 벽에서 구멍까지 왼쪽 아래로) → 지름길 오른쪽 벽(x 14) → 결승 통로.
+      // 바닥 A 아래 오른쪽 공간은 막혀 있어 구슬이 들어가지 않는다
+      wall([
+        [16.5, -300],
+        [16.5, 6],
+        [14, 10],
+        [14, 11],
+        [23, 13.5],
+        [23, 16.5],
+        [14, 18.5],
+        [14, CROSS_MERGE],
+        [13.8, CROSS_MERGE + 10],
+        [13.8, CROSS_MERGE + 16],
+      ]),
+      // 입구 바로 아래 오른쪽으로 기운 유도판. 구슬을 오른쪽 끝으로 보내 바닥 A 를 굴러오게 한다.
+      // 입구를 가운데에 두어 시작 위치에 따른 쏠림을 줄이고, 유도판 왼쪽 끝을 넘어간 구슬은 바로 우회로로 간다
+      wall([
+        [10.5, 12.6],
+        [19, 15],
+      ]),
+      // 갈림길 바닥 B(구멍 왼쪽에서 우회로 입구까지) → 지름길 왼쪽 벽(x 12). 두 길이 합쳐지는 곳에서 끝난다
+      wall([
+        [6, 21.5],
+        [12, 19.9],
+        [12, CROSS_MERGE],
+      ]),
+      // 지름길 입구(구멍 x 12 ~ 14) 위에서 천천히 도는 회전문. 누우면 구멍을 거의 막는다
+      spinner(13, 19.2, 0.95, 0.12, CROSSROADS_DOOR_SPEED),
+      // 지름길 안에서 양쪽 벽에 번갈아 붙은 짧은 받침. 너무 빨리 떨어지지 않게 한다.
+      // 핀을 벽에서 띄워 두면 핀과 벽 사이 틈에 구슬이 끼므로 벽에 붙이고, 반대편 벽과는 1.2 를 띄운다
+      ...[26, 32, 38, 44, 50].map((y, i) =>
+        i % 2 === 0
+          ? wall([
+              [12, y],
+              [12.8, y + 0.6],
+            ])
+          : wall([
+              [14, y],
+              [13.2, y + 0.6],
+            ])
+      ),
+      ...crossroadsDetour(),
     ],
   },
 ];

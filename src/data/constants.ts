@@ -145,6 +145,10 @@ export const BRICK_LAYER_DURABILITY = [0, 800, 2000];
 export const BRICK_LAYER_GAP = 14;
 export const BRICK_ROWS_PER_LAYER = 3;
 
+/** 맵 'Crossroads': 지름길 입구 회전문 속도(라디안/초), 우회로 선반 수 */
+export const CROSSROADS_DOOR_SPEED = 1.2;
+export const CROSSROADS_DETOUR_SHELVES = 6;
+
 export const DefaultEntityColor = {
   box: 'cyan',
   circle: 'yellow',
