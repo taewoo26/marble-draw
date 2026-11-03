@@ -1,5 +1,17 @@
 import { Camera } from './camera';
-import { canvasHeight, canvasWidth, initialZoom, Skills, Themes, zoomThreshold } from './data/constants';
+import {
+  BOOST_MAX_SPEED,
+  BOOST_SPEED,
+  canvasHeight,
+  canvasWidth,
+  FREEZE_DURATION,
+  FREEZE_RADIUS,
+  initialZoom,
+  Skills,
+  SWAP_RANGE,
+  Themes,
+  zoomThreshold,
+} from './data/constants';
 import { type StageDef, stages } from './data/maps';
 import { FastForwader } from './fastForwader';
 import type { GameObject } from './gameObject';
@@ -12,7 +24,7 @@ import { Box2dPhysics } from './physics-box2d';
 import { ProgressMap } from './progressMap';
 import { RankRenderer } from './rankRenderer';
 import { type AdHit, RouletteRenderer } from './rouletteRenderer';
-import { SkillEffect } from './skillEffect';
+import { BoostEffect, FreezeEffect, SkillEffect, SwapEffect } from './skillEffect';
 import type { RoundAd } from './types/Ad.type';
 import type { ColorTheme } from './types/ColorTheme';
 import type { MouseEventHandlerName, MouseEventName } from './types/mouseEvents.type';
@@ -237,6 +249,8 @@ export class Roulette extends EventTarget {
       if (marble.skill === Skills.Impact) {
         this._effects.push(new SkillEffect(marble.x, marble.y));
         this.physics.impact(marble.id);
+      } else if (marble.skill !== Skills.None) {
+        this._useSkill(marble, marble.skill);
       }
       if (marble.y > this._stage.goalY) {
         this._winners.push(marble);
@@ -268,6 +282,48 @@ export class Roulette extends EventTarget {
     this._marbles = this._marbles.filter((marble) => marble.y <= this._stage?.goalY);
 
     this._checkFinish();
+  }
+
+  /** 아직 골인하지 않은 다른 구슬 중 marble 에서 range 안에 있는 구슬들 */
+  private _marblesNear(marble: Marble, range: number): Marble[] {
+    const goalY = this._stage?.goalY ?? Infinity;
+    const rangeSq = range * range;
+    const { x, y } = marble;
+    return this._marbles.filter((m) => {
+      if (m === marble || m.y > goalY) return false;
+      const dx = m.x - x;
+      const dy = m.y - y;
+      return dx * dx + dy * dy <= rangeSq;
+    });
+  }
+
+  /** Impact 외의 새 스킬(부스터, 자리 바꾸기, 얼음)을 발동한다 */
+  private _useSkill(marble: Marble, skill: Skills) {
+    switch (skill) {
+      case Skills.Boost:
+        this._effects.push(new BoostEffect(marble));
+        this.physics.boost(marble.id, BOOST_SPEED, BOOST_MAX_SPEED);
+        break;
+      case Skills.Swap: {
+        const candidates = this._marblesNear(marble, SWAP_RANGE);
+        if (candidates.length === 0) return;
+        const other = candidates[Math.floor(Math.random() * candidates.length)];
+        this._effects.push(new SwapEffect(marble, other));
+        this.physics.swapMarbles(marble.id, other.id);
+        break;
+      }
+      case Skills.Freeze: {
+        this._effects.push(new FreezeEffect(marble.x, marble.y));
+        const targets = this._marblesNear(marble, FREEZE_RADIUS);
+        if (targets.length > 0) {
+          this.physics.freeze(
+            targets.map((m) => m.id),
+            FREEZE_DURATION
+          );
+        }
+        break;
+      }
+    }
   }
 
   /** 카메라와 슬로우모션이 주목할 구슬 = 당첨 커트라인에 걸쳐있는 구슬 */
