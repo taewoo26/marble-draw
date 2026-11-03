@@ -1,7 +1,7 @@
 import { DEBUG_SKILL_RATE, MARBLE_BASE_SIZE, Skills, STUCK_DELAY, Themes } from './data/constants';
 import type { IPhysics } from './IPhysics';
 import options from './options';
-import { pickSkill } from './skillLogic';
+import { pickSkill, skillRateFor } from './skillLogic';
 import type { ColorTheme } from './types/ColorTheme';
 import type { VectorLike } from './types/VectorLike';
 import { transformGuard } from './utils/transformGuard';
@@ -65,7 +65,7 @@ export class Marble {
 
     this._maxCoolTime = 1000 + (1 - this.weight) * 4000;
     this._coolTime = this._maxCoolTime * Math.random();
-    this._skillRate = 0.2 * this.weight;
+    this._skillRate = skillRateFor(this.weight);
 
     const maxLine = Math.ceil(max / 10);
     const line = Math.floor(order / 10);

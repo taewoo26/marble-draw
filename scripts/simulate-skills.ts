@@ -10,6 +10,7 @@
  * 미완주(unfinished)와 이탈(outOfBounds)이 0 이면 스킬 때문에 구슬이 끼거나 맵 밖으로 나가지 않은 것이다.
  */
 import { SKILL_WEIGHTS, type SkillName } from '../src/data/constants';
+import { skillRateFor } from '../src/skillLogic';
 import { DEFAULT_MARBLE_WEIGHT, selectMaps, simulate } from './lib/sim';
 
 function parseArgs(argv: string[]) {
@@ -39,7 +40,7 @@ async function main() {
     ? (Object.fromEntries(Object.keys(SKILL_WEIGHTS).map((k) => [k, k === skill ? 1 : 0])) as Record<SkillName, number>)
     : SKILL_WEIGHTS;
   console.log(
-    `스킬: ${skill ?? '전체 (SKILL_WEIGHTS)'}, 발동 확률: ${rate ?? `게임과 같음 (${0.2 * DEFAULT_MARBLE_WEIGHT})`}, 시드: 1~${seeds}`
+    `스킬: ${skill ?? '전체 (SKILL_WEIGHTS)'}, 발동 확률: ${rate ?? `게임과 같음 (${skillRateFor(DEFAULT_MARBLE_WEIGHT).toFixed(2)})`}, 시드: 1~${seeds}`
   );
   console.log('| 맵 | 구슬 | 시드 | 스킬 발동 | 첫 골인 | 마지막 골인 | shake | 미완주 | 이탈 |');
   console.log('|---|---:|---:|---:|---:|---:|---:|---:|---:|');

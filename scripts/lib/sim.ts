@@ -8,7 +8,7 @@ import Box2DFactory from 'box2d-wasm';
 import { type SkillName, STUCK_DELAY } from '../../src/data/constants';
 import { stages } from '../../src/data/maps';
 import { Box2dPhysics } from '../../src/physics-box2d';
-import { applySkill, pickSkill, type SkillActor } from '../../src/skillLogic';
+import { applySkill, pickSkill, type SkillActor, skillRateFor } from '../../src/skillLogic';
 
 export const STEP_MS = 10;
 export const MAX_SIM_SEC = 900;
@@ -42,7 +42,7 @@ export class NodePhysics extends Box2dPhysics {
 }
 
 export type SkillOptions = {
-  /** null 이면 게임과 같은 발동 확률 (0.2 * weight) */
+  /** null 이면 게임과 같은 발동 확률 (skillRateFor) */
   rate: number | null;
   weights: Record<SkillName, number>;
 };
@@ -80,7 +80,7 @@ export async function simulate({ mapIdx, n, seed, skills }: SimOptions): Promise
   const maxLine = Math.ceil(n / 10);
   const lineDelta = -Math.max(0, Math.ceil(maxLine - 5));
   const maxCoolTime = 1000 + (1 - DEFAULT_MARBLE_WEIGHT) * 4000;
-  const skillRate = skills ? (skills.rate ?? 0.2 * DEFAULT_MARBLE_WEIGHT) : 0;
+  const skillRate = skills ? (skills.rate ?? skillRateFor(DEFAULT_MARBLE_WEIGHT)) : 0;
   const coolTime = new Map<number, number>();
   for (let order = 0; order < n; order++) {
     const line = Math.floor(order / 10);

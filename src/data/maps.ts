@@ -20,7 +20,7 @@ import {
   ZIGZAG_PIN_RADIUS,
   ZIGZAG_SLOPE_DROP,
 } from './constants';
-import { circle, spinner, wall, windmill } from './mapHelpers';
+import { circle, ring, slopeRings, spinner, target, wall, windmill } from './mapHelpers';
 
 export type AdBoard = {
   x: number;
@@ -76,7 +76,12 @@ function pinballBumpers(): MapEntity[] {
     const y = 20 + row * 4;
     const x0 = 5 + ((row % 3) * 4) / 3;
     for (let x = x0; x <= 21; x += 4) {
-      bumpers.push(circle(x, y, PINBALL_BUMPER_RADIUS, PINBALL_BUMPER_RESTITUTION));
+      // 4줄마다 한 줄은 범퍼 대신 튕기는 링. 한 번 튕겨내고 부서지므로 판이 점점 바뀐다
+      bumpers.push(
+        row % 4 === 3
+          ? ring(x, y, PINBALL_BUMPER_RADIUS, row + Math.round(x))
+          : circle(x, y, PINBALL_BUMPER_RADIUS, PINBALL_BUMPER_RESTITUTION)
+      );
     }
   }
   return bumpers;
@@ -116,18 +121,20 @@ function zigzagStairs(): MapEntity[] {
         wall([
           [ZIGZAG_LEFT, y],
           [ZIGZAG_RIGHT - ZIGZAG_GAP, y + ZIGZAG_SLOPE_DROP],
-        ])
+        ]),
+        ...slopeRings([ZIGZAG_LEFT, y], [ZIGZAG_RIGHT - ZIGZAG_GAP, y + ZIGZAG_SLOPE_DROP], level)
       );
-      result.push(circle(ZIGZAG_RIGHT - ZIGZAG_GAP / 2, pinY, ZIGZAG_PIN_RADIUS));
+      result.push(ring(ZIGZAG_RIGHT - ZIGZAG_GAP / 2, pinY, ZIGZAG_PIN_RADIUS, level));
     } else {
       // 오른쪽 벽에서 왼쪽 아래로
       result.push(
         wall([
           [ZIGZAG_RIGHT, y],
           [ZIGZAG_LEFT + ZIGZAG_GAP, y + ZIGZAG_SLOPE_DROP],
-        ])
+        ]),
+        ...slopeRings([ZIGZAG_RIGHT, y], [ZIGZAG_LEFT + ZIGZAG_GAP, y + ZIGZAG_SLOPE_DROP], level)
       );
-      result.push(circle(ZIGZAG_LEFT + ZIGZAG_GAP / 2, pinY, ZIGZAG_PIN_RADIUS));
+      result.push(ring(ZIGZAG_LEFT + ZIGZAG_GAP / 2, pinY, ZIGZAG_PIN_RADIUS, level));
     }
   }
   return result;
@@ -155,7 +162,7 @@ function windmillVillage(): MapEntity[] {
     });
     // 같은 층의 풍차 사이 핀 (풍차 2개인 층만. 3개인 층은 날개 사이가 좁아 핀을 두지 않는다)
     if (speeds.length === 2) {
-      result.push(circle(13, y, WINDMILL_PIN_RADIUS));
+      result.push(ring(13, y, WINDMILL_PIN_RADIUS, layer));
     }
     // 아래층과의 사이: 가운데 핀 2개, 양쪽 벽에는 안쪽으로 기운 짧은 선반.
     // 선반이 없으면 벽을 따라 풍차를 피해 곧장 떨어지는 구슬이 생긴다.
@@ -163,7 +170,7 @@ function windmillVillage(): MapEntity[] {
     if (layer === WINDMILL_SPEEDS.length - 1) return;
     const pinY = y + WINDMILL_LAYER_GAP / 2;
     const pinXs = layer % 2 === 0 ? [10.5, 15.5] : [9.75, 16.25];
-    for (const x of pinXs) result.push(circle(x, pinY, WINDMILL_PIN_RADIUS));
+    pinXs.forEach((x, i) => result.push(ring(x, pinY, WINDMILL_PIN_RADIUS, layer + i)));
     result.push(
       wall([
         [3, pinY - 1],
@@ -196,6 +203,13 @@ const BRICK_BOTTOM = BRICK_TOP + (BRICK_LAYER_DURABILITY.length - 1) * BRICK_LAY
 function brickLayers(): MapEntity[] {
   const result: MapEntity[] = [];
   BRICK_LAYER_DURABILITY.forEach((durability, layer) => {
+    // 층 사이(마지막 층 아래 제외)에 튕기는 링 한 줄
+    if (layer < BRICK_LAYER_DURABILITY.length - 1) {
+      const ringY = BRICK_TOP + layer * BRICK_LAYER_GAP + BRICK_LAYER_GAP / 2 + 1;
+      for (let x = BRICK_LEFT + 1.5, i = 0; x <= BRICK_RIGHT - 1.5; x += 3, i++) {
+        result.push(ring(x + (layer % 2) * 1.5, ringY, 0.3, layer + i));
+      }
+    }
     for (let row = 0; row < BRICK_ROWS_PER_LAYER; row++) {
       const y = BRICK_TOP + layer * BRICK_LAYER_GAP + row * (BRICK_HALF_HEIGHT * 2 + BRICK_GAP);
       const count = row % 2 === 0 ? 9 : 10;
@@ -229,17 +243,10 @@ function crossroadsDetour(): MapEntity[] {
   const result: MapEntity[] = [];
   for (let i = 0; i < CROSSROADS_DETOUR_SHELVES; i++) {
     const y = CROSS_SHELF_TOP + i * CROSS_SHELF_GAP;
-    result.push(
-      i % 2 === 0
-        ? wall([
-            [3, y],
-            [10.5, y + 2.5],
-          ])
-        : wall([
-            [12, y],
-            [4.5, y + 2.5],
-          ])
-    );
+    const from: [number, number] = i % 2 === 0 ? [3, y] : [12, y];
+    const to: [number, number] = i % 2 === 0 ? [10.5, y + 2.5] : [4.5, y + 2.5];
+    // 선반마다 위에 튕기는 링 두 개
+    result.push(wall([from, to]), ...slopeRings(from, to, i));
   }
   return result;
 }
@@ -3264,6 +3271,8 @@ export const stages: StageDef[] = [
         [13.5, 148],
       ]),
       // 범퍼 23줄. 탄성이 1 을 넘으면 위로 역주행하므로 1 보다 작게 (PINBALL_BUMPER_RESTITUTION)
+      // 입구 바로 아래 과녁 링. 바깥 링부터 한 겹씩 부서진다
+      ...target(13, 15, [1.2, 0.8, 0.4]),
       ...pinballBumpers(),
       // 서로 반대 방향으로 도는 막대 두 쌍
       spinner(9.5, 116, 2.2, 0.15, PINBALL_SPINNER_SPEED),
@@ -3366,6 +3375,8 @@ export const stages: StageDef[] = [
         [13.8, BRICK_BOTTOM + 10],
         [13.8, BRICK_BOTTOM + 16],
       ]),
+      // 입구 바로 아래 과녁 링
+      ...target(13, 16.5, [1, 0.6, 0.25]),
       ...brickLayers(),
     ],
   },

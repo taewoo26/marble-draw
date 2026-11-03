@@ -38,6 +38,12 @@ export const SKILL_WEIGHTS: Record<SkillName, number> = {
   Shrink: 1,
 };
 
+/**
+ * 스킬 발동 확률 = SKILL_BASE_RATE + 0.2 * 구슬 가중치 (쿨타임이 끝날 때마다 한 번 굴린다).
+ * 이름 가중치가 모두 같으면 구슬 가중치는 0.1 이라 0.02 + SKILL_BASE_RATE. 0 이면 원작과 같은 빈도
+ */
+export const SKILL_BASE_RATE = 0.15;
+
 /** 부스터: 아래(+y) 방향으로 더하는 속도. 질량과 무관하게 같은 만큼 빨라진다 */
 export const BOOST_SPEED = 5;
 /** 부스터 후 아래 방향 속도 상한. 한 물리 스텝(0.01초)에 구슬 반지름보다 덜 움직이게 해서 벽을 뚫지 않게 한다 */
@@ -101,6 +107,14 @@ export const BANNER_START_DELAY = 3000;
 /** 효과음: 전체 볼륨(0 ~ 1), 같은 종류 효과음 사이 최소 간격(ms) */
 export const SOUND_VOLUME = 0.15;
 export const SOUND_MIN_INTERVAL = 100;
+
+/**
+ * 튕기는 링 (맵 '밤을 달리다' 의 링과 같은 방식): 부딪히면 이 탄성으로 세게 튕겨내고 한 번에 부서진다.
+ * 탄성이 1 보다 크면 구슬이 더 빨라지지만, 한 번 쓰고 부서지므로 에너지가 계속 쌓이지 않는다
+ */
+export const RING_RESTITUTION = 1.5;
+/** 링 색. 다크·라이트 테마 모두에서 보이는 색으로 고른다 */
+export const RING_COLORS = ['#ff6fa5', '#ffb300', '#4fc3f7', '#9c6bff', '#3ddc84'];
 
 /** 맵 'Pinball': 범퍼 반지름·탄성, 아래쪽 회전 막대 속도(라디안/초) */
 export const PINBALL_BUMPER_RADIUS = 0.6;

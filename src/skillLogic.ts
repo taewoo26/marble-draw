@@ -16,6 +16,7 @@ import {
   RESIZE_STEP,
   SHRINK_DURATION,
   SHRINK_SCALE,
+  SKILL_BASE_RATE,
   SKILL_WEIGHTS,
   type SkillName,
   Skills,
@@ -38,6 +39,11 @@ export type SkillResult = {
   /** 얼음, 자석에 걸린 구슬들 */
   targets: SkillActor[];
 } | null;
+
+/** 쿨타임이 끝날 때 스킬이 발동할 확률. weight 는 구슬 가중치 (marble.ts) */
+export function skillRateFor(weight: number): number {
+  return Math.min(1, SKILL_BASE_RATE + 0.2 * weight);
+}
 
 /** 발동한 스킬의 종류를 가중치대로 고른다. 가중치가 0 이하인 스킬은 나오지 않는다 */
 export function pickSkill(weights: Record<SkillName, number> = SKILL_WEIGHTS): Skills {
