@@ -16,7 +16,8 @@
     "dev": "parcel index.html --port 1235",
     "build": "parcel build index.html --public-url /marble-draw/ && node scripts/build-sw.js",
     "simulate": "tsx scripts/simulate.ts",
-    "simulate:skills": "tsx scripts/simulate-skills.ts"
+    "simulate:skills": "tsx scripts/simulate-skills.ts",
+    "analyze:maps": "tsx scripts/analyze-maps.ts"
   },
   "dependencies": {
     "box2d-wasm": "^7.0.0"
