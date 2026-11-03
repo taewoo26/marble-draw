@@ -30,6 +30,7 @@ import { ProgressMap } from './progressMap';
 import { RankRenderer } from './rankRenderer';
 import { type AdHit, RouletteRenderer } from './rouletteRenderer';
 import { BoostEffect, FreezeEffect, SkillEffect, SkillLabelEffect, SwapEffect } from './skillEffect';
+import { type SoundName, sound } from './sound';
 import type { RoundAd } from './types/Ad.type';
 import type { ColorTheme } from './types/ColorTheme';
 import type { MouseEventHandlerName, MouseEventName } from './types/mouseEvents.type';
@@ -51,6 +52,14 @@ function clipWinnerRange({ start, end }: WinnerRange, marbleCount: number): Winn
  * 앞 구슬보다 RANK_MARGIN 넘게 앞서야 자리를 바꾼다
  */
 const RANK_EMA_SEC = 0.4;
+
+/** 스킬별 효과음 */
+const SKILL_SOUNDS: Partial<Record<Skills, SoundName>> = {
+  [Skills.Impact]: 'impact',
+  [Skills.Boost]: 'boost',
+  [Skills.Swap]: 'swap',
+  [Skills.Freeze]: 'freeze',
+};
 const RANK_MARGIN = 0.25;
 
 export class Roulette extends EventTarget {
@@ -269,14 +278,15 @@ export class Roulette extends EventTarget {
       if (marble.skill === Skills.Impact) {
         this._effects.push(new SkillEffect(marble.x, marble.y));
         this.physics.impact(marble.id);
-        this._showSkillLabel(marble, marble.skill);
+        this._onSkillUsed(marble, marble.skill);
       } else if (marble.skill !== Skills.None) {
         if (this._useSkill(marble, marble.skill)) {
-          this._showSkillLabel(marble, marble.skill);
+          this._onSkillUsed(marble, marble.skill);
         }
       }
       if (marble.y > this._stage.goalY) {
         this._winners.push(marble);
+        sound.play('goal');
         if (this._isRunning && this._isWinningRank(this._winners.length - 1)) {
           this._particleManager.shot(this._renderer.width, this._renderer.height);
         }
@@ -320,8 +330,10 @@ export class Roulette extends EventTarget {
     });
   }
 
-  /** 발동한 구슬 위에 스킬 이름을 잠깐 띄운다 */
-  private _showSkillLabel(marble: Marble, skill: Skills) {
+  /** 스킬이 실제로 발동한 뒤: 효과음을 내고 구슬 위에 스킬 이름을 잠깐 띄운다 */
+  private _onSkillUsed(marble: Marble, skill: Skills) {
+    const soundName = SKILL_SOUNDS[skill];
+    if (soundName) sound.play(soundName);
     const label = SKILL_LABELS[skill];
     if (!label || !this._stage) return;
     this._effects.push(new SkillLabelEffect(marble, label, this._skillColor(skill), this._stage.goalY));
@@ -443,6 +455,7 @@ export class Roulette extends EventTarget {
 
     this._result = ranked.slice(start, end + 1);
     this._isRunning = false;
+    sound.play('fanfare');
     this.dispatchEvent(
       new CustomEvent('goal', {
         detail: { winner: this._result[0].name, winners: this._result.map((m) => m.name) },

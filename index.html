@@ -219,6 +219,21 @@
       window.options.useSkills = e.target.matches(':checked');
     });
 
+    // 효과음 설정은 localStorage 에 저장한다. 저장소를 못 쓰는 환경(시크릿 창 등)에서도 에러 없이 기본값(켜짐)으로 동작한다
+    try {
+      const savedSound = localStorage.getItem('mbr_sound');
+      if (savedSound !== null) {
+        window.options.useSound = savedSound === '1';
+      }
+    } catch (e) {}
+    document.querySelector('#chkSound').checked = window.options.useSound;
+    document.querySelector('#chkSound').addEventListener('change', (e) => {
+      window.options.useSound = e.target.matches(':checked');
+      try {
+        localStorage.setItem('mbr_sound', window.options.useSound ? '1' : '0');
+      } catch (e) {}
+    });
+
     document.querySelector('#chkDarkMode').addEventListener('change', (e) => {
       window.options.darkMode = e.target.matches(':checked');
       window.roulette.setTheme(window.options.darkMode ? 'dark' : 'light');
@@ -350,6 +365,13 @@
             <span data-trans>Using skills</span>
           </label>
           <input type="checkbox" id="chkSkill" checked />
+        </div>
+        <div class='toggle-item'>
+          <label for='chkSound'>
+            <i class="icon megaphone"></i>
+            <span data-trans>Sound</span>
+          </label>
+          <input type="checkbox" id="chkSound" checked />
         </div>
       </div>
       <div class="row">

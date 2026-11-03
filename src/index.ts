@@ -2,6 +2,7 @@ import './localization';
 import { initMapSelector } from './mapSelector';
 import options from './options';
 import { Roulette } from './roulette';
+import { sound } from './sound';
 
 const roulette = new Roulette();
 
@@ -17,6 +18,8 @@ const roulette = new Roulette();
 // index.html 의 시작 버튼이 부른다. 광고 없이 녹화 준비가 끝나면 바로 시작한다
 (window as any).ads = {
   beginRound(onStart: () => void) {
+    // 브라우저 정책상 소리는 사용자 클릭 처리 안에서 켜야 한다
+    sound.unlock();
     roulette.startRecording().then(onStart);
   },
   showResult() {},

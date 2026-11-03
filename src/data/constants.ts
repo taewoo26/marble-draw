@@ -56,6 +56,10 @@ export const BANNER_DURATION = 1500;
 export const BANNER_COOLDOWN = 2000;
 export const BANNER_START_DELAY = 3000;
 
+/** 효과음: 전체 볼륨(0 ~ 1), 같은 종류 효과음 사이 최소 간격(ms) */
+export const SOUND_VOLUME = 0.15;
+export const SOUND_MIN_INTERVAL = 100;
+
 export const DefaultEntityColor = {
   box: 'cyan',
   circle: 'yellow',
