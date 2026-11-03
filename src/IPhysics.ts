@@ -40,6 +40,16 @@ export interface IPhysics {
    */
   antiGravity(id: number, durationMs: number, scale: number, maxUpSpeed: number): void;
 
+  /**
+   * 구슬 크기를 scale 배로 바꿔 durationMs(물리 시간) 동안 유지했다가 원래대로 되돌린다.
+   * 바뀌는 동안 rampMs 에 걸쳐 step 배율 단위로 물리 원을 다시 만든다.
+   * 같은 배율이 진행 중이면 시간만 연장하고, 다른 배율이면 새 배율로 대체한다
+   */
+  resize(id: number, scale: number, durationMs: number, rampMs: number, step: number): void;
+
+  /** 구슬의 지금 크기 배율 (원래 크기 = 1) */
+  getMarbleScale(id: number): number;
+
   /** Impact 의 반대. targets 를 id 구슬 쪽으로 끌어당긴다. 가까울수록 세고 range 에서 0 이 된다 */
   magnet(id: number, targets: number[], range: number, power: number): void;
 

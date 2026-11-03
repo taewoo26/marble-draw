@@ -8,8 +8,14 @@ import {
   FREEZE_DURATION,
   FREEZE_IMMUNITY,
   FREEZE_RADIUS,
+  GIANT_DURATION,
+  GIANT_SCALE,
   MAGNET_POWER,
   MAGNET_RANGE,
+  RESIZE_RAMP_TIME,
+  RESIZE_STEP,
+  SHRINK_DURATION,
+  SHRINK_SCALE,
   SKILL_WEIGHTS,
   type SkillName,
   Skills,
@@ -104,6 +110,12 @@ export function applySkill(physics: IPhysics, actor: SkillActor, skill: Skills, 
       }
       return { targets };
     }
+    case Skills.Giant:
+      physics.resize(actor.id, GIANT_SCALE, GIANT_DURATION, RESIZE_RAMP_TIME, RESIZE_STEP);
+      return { targets: [] };
+    case Skills.Shrink:
+      physics.resize(actor.id, SHRINK_SCALE, SHRINK_DURATION, RESIZE_RAMP_TIME, RESIZE_STEP);
+      return { targets: [] };
     default:
       return null;
   }

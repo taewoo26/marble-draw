@@ -1,4 +1,4 @@
-import { DEBUG_SKILL_RATE, Skills, STUCK_DELAY, Themes } from './data/constants';
+import { DEBUG_SKILL_RATE, MARBLE_BASE_SIZE, Skills, STUCK_DELAY, Themes } from './data/constants';
 import type { IPhysics } from './IPhysics';
 import options from './options';
 import { pickSkill } from './skillLogic';
@@ -11,7 +11,6 @@ import { Vector } from './utils/Vector';
 export class Marble {
   type = 'marble' as const;
   name: string = '';
-  size: number = 0.5;
   color: string = 'red';
   hue: number = 0;
   impact: number = 0;
@@ -29,6 +28,11 @@ export class Marble {
   private physics: IPhysics;
 
   id: number;
+
+  /** 화면에 그리는 지름. 거대화·축소 중이면 물리 반지름과 같은 비율로 바뀐다 */
+  get size() {
+    return MARBLE_BASE_SIZE * this.physics.getMarbleScale(this.id);
+  }
 
   get position() {
     return this.physics.getMarblePosition(this.id) || { x: 0, y: 0, angle: 0 };
@@ -201,7 +205,8 @@ export class Marble {
       ctx.lineWidth = 2;
       ctx.fillStyle = this.color;
       ctx.shadowBlur = 0;
-      ctx.translate(this.x, this.y + 0.25);
+      // 이름은 구슬 아래쪽 가장자리에 붙인다 (크기가 바뀌어도 같은 자리)
+      ctx.translate(this.x, this.y + this.size / 2);
       ctx.scale(1 / zoom, 1 / zoom);
       ctx.strokeText(this.name, 0, 0);
       ctx.fillText(this.name, 0, 0);

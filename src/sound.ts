@@ -1,7 +1,17 @@
 import { SOUND_MIN_INTERVAL, SOUND_VOLUME } from './data/constants';
 import options from './options';
 
-export type SoundName = 'impact' | 'boost' | 'swap' | 'freeze' | 'antiGravity' | 'magnet' | 'goal' | 'fanfare';
+export type SoundName =
+  | 'impact'
+  | 'boost'
+  | 'swap'
+  | 'freeze'
+  | 'antiGravity'
+  | 'magnet'
+  | 'giant'
+  | 'shrink'
+  | 'goal'
+  | 'fanfare';
 
 /**
  * 효과음. 오디오 파일 없이 Web Audio API 로 짧은 소리를 합성한다.
@@ -70,6 +80,14 @@ class SoundManager {
         // 우웅: 살짝 어긋난 낮은 두 음이 맥놀이를 낸다
         this._tone('sawtooth', t, 0.4, 0.25, [110, 150], 600);
         this._tone('sawtooth', t, 0.4, 0.25, [116, 158], 600);
+        break;
+      case 'giant':
+        // 부풀어오르는 소리: 낮은 음이 천천히 올라간다
+        this._tone('triangle', t, 0.4, 0.5, [150, 420], 1200);
+        break;
+      case 'shrink':
+        // 쪼그라드는 소리: 높은 음이 빠르게 내려간다
+        this._tone('square', t, 0.3, 0.2, [1100, 300], 2000);
         break;
       case 'goal':
         // 딩

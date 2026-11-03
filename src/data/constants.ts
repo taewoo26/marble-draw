@@ -15,6 +15,8 @@ export enum Skills {
   Freeze,
   AntiGravity,
   Magnet,
+  Giant,
+  Shrink,
 }
 
 /** None 을 뺀 스킬 이름 ('Impact', 'Boost', ...) */
@@ -32,6 +34,8 @@ export const SKILL_WEIGHTS: Record<SkillName, number> = {
   Freeze: 1,
   AntiGravity: 1,
   Magnet: 1,
+  Giant: 1,
+  Shrink: 1,
 };
 
 /** 부스터: 아래(+y) 방향으로 더하는 속도. 질량과 무관하게 같은 만큼 빨라진다 */
@@ -55,6 +59,17 @@ export const ANTI_GRAVITY_MAX_UP_SPEED = 3;
 /** 자석: 끌어당기는 범위, 세기(가장 가까울 때 임펄스. 멀수록 약해진다) */
 export const MAGNET_RANGE = 5;
 export const MAGNET_POWER = 1;
+/** 구슬 기본 지름(화면). 물리 반지름은 이 값의 절반 */
+export const MARBLE_BASE_SIZE = 0.5;
+/** 거대화: 크기 배율, 유지 시간(ms, 물리 시간) */
+export const GIANT_SCALE = 1.6;
+export const GIANT_DURATION = 2000;
+/** 축소: 크기 배율, 유지 시간(ms, 물리 시간) */
+export const SHRINK_SCALE = 0.75;
+export const SHRINK_DURATION = 3000;
+/** 크기가 바뀌는 데 걸리는 시간(ms)과 한 번에 바꾸는 배율 단위. 이 단위마다 물리 원을 새로 만든다 */
+export const RESIZE_RAMP_TIME = 300;
+export const RESIZE_STEP = 0.05;
 
 /**
  * 개발 확인용. null 이 아니면 스킬이 발동할 때 항상 이 스킬이 나온다 (예: Skills.Swap).
@@ -72,6 +87,8 @@ export const SKILL_LABELS: Partial<Record<Skills, string>> = {
   [Skills.Freeze]: '❄️ 얼음!',
   [Skills.AntiGravity]: '🎈 둥실!',
   [Skills.Magnet]: '🧲 자석!',
+  [Skills.Giant]: '🐘 거대화!',
+  [Skills.Shrink]: '🐜 축소!',
 };
 /** 스킬 이름이 떠 있는 시간(ms) */
 export const SKILL_LABEL_DURATION = 800;
@@ -109,6 +126,8 @@ export const Themes: Record<string, ColorTheme> = {
       freeze: '#3a9fd8',
       antiGravity: '#d6336c',
       magnet: '#c0392b',
+      giant: '#b8860b',
+      shrink: '#2e8b57',
     },
     coolTimeIndicator: '#999',
     entity: {
@@ -150,6 +169,8 @@ export const Themes: Record<string, ColorTheme> = {
       freeze: '#8fe3ff',
       antiGravity: '#ff9ecb',
       magnet: '#ff6b6b',
+      giant: '#ffd54f',
+      shrink: '#7ee08a',
     },
     coolTimeIndicator: 'red',
     entity: {

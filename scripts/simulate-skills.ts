@@ -61,6 +61,8 @@ type Result = {
   outOfBounds: number;
   shakes: number;
   skillsUsed: number;
+  /** 끝나지 않은 구슬의 마지막 위치 */
+  leftovers: { id: number; x: number; y: number }[];
 };
 
 async function simulate({ mapIdx, n, seed, rate, weights }: Options): Promise<Result> {
@@ -87,7 +89,7 @@ async function simulate({ mapIdx, n, seed, rate, weights }: Options): Promise<Re
   const last = new Map<number, { x: number; y: number }>();
   const stuckMs = new Map<number, number>();
   const pending: { id: number; at: number }[] = [];
-  const r: Result = { title: stage.title, goals: [], unfinished: 0, outOfBounds: 0, shakes: 0, skillsUsed: 0 };
+  const r: Result = { title: stage.title, goals: [], unfinished: 0, outOfBounds: 0, shakes: 0, skillsUsed: 0, leftovers: [] };
   const stepSec = STEP_MS / 1000;
   let t = 0;
   while (alive.size > 0 && t < MAX_SIM_SEC) {
@@ -134,6 +136,7 @@ async function simulate({ mapIdx, n, seed, rate, weights }: Options): Promise<Re
     }
   }
   r.unfinished = alive.size;
+  r.leftovers = [...alive].map((id) => ({ id, ...p.getMarblePosition(id) }));
   return r;
 }
 
@@ -175,6 +178,9 @@ async function main() {
       for (let seed = 1; seed <= seeds; seed++) {
         const r = await simulate({ mapIdx: m, n, seed, rate, weights });
         if (r.unfinished || r.outOfBounds) problems++;
+        for (const m of r.leftovers) {
+          console.log(`  미완주 구슬 #${m.id}: (${m.x.toFixed(2)}, ${m.y.toFixed(2)})`);
+        }
         console.log(
           `| ${r.title} | ${n} | ${seed} | ${r.skillsUsed} | ${r.goals[0]?.toFixed(1)}s | ${r.goals.at(-1)?.toFixed(1)}s | ${r.shakes} | ${r.unfinished} | ${r.outOfBounds} |`
         );

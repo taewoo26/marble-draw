@@ -3,6 +3,26 @@ import type { StageDef } from './data/maps';
 import type { IPhysics } from './IPhysics';
 import type { MapEntity, MapEntityState } from './types/MapEntity.type';
 
+/** 구슬 기본 물리 반지름 */
+const MARBLE_RADIUS = 0.25;
+
+/** 크기 스킬 상태 */
+type ResizeState = {
+  /** 목표 배율. 유지 시간이 끝나면 1 로 바뀐다 */
+  target: number;
+  /** 목표 배율을 유지할 남은 시간(ms, 물리 시간). 0 이하면 원래 크기로 돌아가는 중 */
+  remaining: number;
+  /** 지금 배율에서 목표 배율까지 걸리는 시간(ms) */
+  rampMs: number;
+  /** 지금 화면·물리에 쓰는 배율. rampMs 동안 부드럽게 바뀐다 */
+  current: number;
+  /** 지금 물리 원에 적용된 배율. current 와 step 이상 차이 나면 원을 다시 만든다 */
+  applied: number;
+  step: number;
+  /** 이번 변화가 시작될 때의 배율. 변화 속도 계산에 쓴다 */
+  from: number;
+};
+
 export class Box2dPhysics implements IPhysics {
   private Box2D!: typeof Box2D & EmscriptenModule;
   private gravity!: Box2D.b2Vec2;
@@ -22,6 +42,10 @@ export class Box2dPhysics implements IPhysics {
   private freezeImmunity = 0;
   /** 반중력 스킬로 뜬 구슬 id → 남은 시간(ms, 물리 시간), 중력 배율, 위로 올라가는 속도 상한 */
   private floating = new Map<number, { remaining: number; scale: number; maxUpSpeed: number }>();
+  /** 거대화·축소 중인 구슬 id → 크기 상태 */
+  private resizing = new Map<number, ResizeState>();
+  /** 구슬 id → 밀도. 원을 다시 만들 때 처음 밀도를 그대로 쓴다 */
+  private marbleDensity = new Map<number, number>();
 
   async init(): Promise<void> {
     this.Box2D = await Box2DFactory();
@@ -42,6 +66,8 @@ export class Box2dPhysics implements IPhysics {
     this.frozen.clear();
     this.freezeImmuneUntil.clear();
     this.floating.clear();
+    this.resizing.clear();
+    this.marbleDensity.clear();
   }
 
   createStage(stage: StageDef): void {
@@ -115,14 +141,16 @@ export class Box2dPhysics implements IPhysics {
 
   createMarble(id: number, x: number, y: number): void {
     const circleShape = new this.Box2D.b2CircleShape();
-    circleShape.set_m_radius(0.25);
+    circleShape.set_m_radius(MARBLE_RADIUS);
 
     const bodyDef = new this.Box2D.b2BodyDef();
     bodyDef.set_type(this.Box2D.b2_dynamicBody);
     bodyDef.set_position(new this.Box2D.b2Vec2(x, y));
 
     const body = this.world.CreateBody(bodyDef);
-    body.CreateFixture(circleShape, 1 + Math.random());
+    const density = 1 + Math.random();
+    body.CreateFixture(circleShape, density);
+    this.marbleDensity.set(id, density);
     body.SetAwake(false);
     body.SetEnabled(false);
     this.marbleMap[id] = body;
@@ -143,6 +171,8 @@ export class Box2dPhysics implements IPhysics {
       this.frozen.delete(id);
       this.freezeImmuneUntil.delete(id);
       this.floating.delete(id);
+      this.resizing.delete(id);
+      this.marbleDensity.delete(id);
     }
   }
 
@@ -258,6 +288,81 @@ export class Box2dPhysics implements IPhysics {
     });
   }
 
+  resize(id: number, scale: number, durationMs: number, rampMs: number, step: number): void {
+    const body = this.marbleMap[id];
+    if (!body) return;
+    const state = this.resizing.get(id);
+    if (state && state.target === scale) {
+      // 같은 스킬이 또 나오면 더 커지거나 작아지지 않고 시간만 연장한다
+      state.remaining = Math.max(state.remaining, durationMs);
+      return;
+    }
+    // 처음이거나 다른 배율이 진행 중이면 지금 크기에서 새 배율로 바꾼다 (나중 스킬이 앞 스킬을 대체)
+    const current = state?.current ?? 1;
+    this.resizing.set(id, {
+      target: scale,
+      remaining: durationMs,
+      rampMs,
+      current,
+      applied: state?.applied ?? 1,
+      step,
+      from: current,
+    });
+  }
+
+  getMarbleScale(id: number): number {
+    return this.resizing.get(id)?.current ?? 1;
+  }
+
+  /** 구슬의 원형 fixture 를 지우고 scale 배 반지름으로 다시 만든다. 밀도는 처음 값 그대로 */
+  private applyMarbleScale(id: number, body: Box2D.b2Body, scale: number) {
+    const { getPointer } = this.Box2D;
+    const fixture = body.GetFixtureList();
+    if (getPointer(fixture) !== 0) body.DestroyFixture(fixture);
+    const shape = new this.Box2D.b2CircleShape();
+    shape.set_m_radius(MARBLE_RADIUS * scale);
+    body.CreateFixture(shape, this.marbleDensity.get(id) ?? 1);
+    body.SetAwake(true);
+  }
+
+  /** 크기 배율을 목표 쪽으로 옮기고, step 이상 바뀌었거나 목표에 닿았으면 물리 원을 다시 만든다 */
+  private updateResizing(dt: number) {
+    for (const [id, state] of this.resizing) {
+      const body = this.marbleMap[id];
+      if (!body) {
+        this.resizing.delete(id);
+        continue;
+      }
+      // 유지 시간이 끝나면 원래 크기로 돌아간다
+      if (state.remaining > 0) {
+        state.remaining -= dt;
+        if (state.remaining <= 0 && state.target !== 1) {
+          state.from = state.current;
+          state.target = 1;
+        }
+      }
+      if (state.current !== state.target) {
+        const speed = Math.abs(state.target - state.from) / Math.max(1, state.rampMs);
+        const delta = speed * dt;
+        state.current =
+          state.current < state.target
+            ? Math.min(state.target, state.current + delta)
+            : Math.max(state.target, state.current - delta);
+      }
+      const reached = state.current === state.target;
+      if (
+        state.applied !== state.current &&
+        (reached || Math.abs(state.current - state.applied) >= state.step - 1e-9)
+      ) {
+        this.applyMarbleScale(id, body, state.current);
+        state.applied = state.current;
+      }
+      if (reached && state.target === 1 && state.remaining <= 0) {
+        this.resizing.delete(id);
+      }
+    }
+  }
+
   /**
    * 얼음과 반중력은 둘 다 중력 배율을 바꾸므로 여기서 한 번에 정한다.
    * 얼음이면 0, 떠 있으면 그 배율, 둘 다 아니면 원래대로 1
@@ -351,6 +456,7 @@ export class Box2dPhysics implements IPhysics {
 
     this.simTime += deltaSeconds * 1000;
     this.updateTimedEffects(deltaSeconds);
+    if (this.resizing.size > 0) this.updateResizing(deltaSeconds * 1000);
     this.world.Step(deltaSeconds, 6, 2);
 
     for (let i = this.entities.length - 1; i >= 0; i--) {

@@ -65,6 +65,8 @@ const SKILL_SOUNDS: Partial<Record<Skills, SoundName>> = {
   [Skills.Freeze]: 'freeze',
   [Skills.AntiGravity]: 'antiGravity',
   [Skills.Magnet]: 'magnet',
+  [Skills.Giant]: 'giant',
+  [Skills.Shrink]: 'shrink',
 };
 const RANK_MARGIN = 0.25;
 
@@ -344,6 +346,10 @@ export class Roulette extends EventTarget {
         return this._theme.skillColors.antiGravity;
       case Skills.Magnet:
         return this._theme.skillColors.magnet;
+      case Skills.Giant:
+        return this._theme.skillColors.giant;
+      case Skills.Shrink:
+        return this._theme.skillColors.shrink;
       default:
         return this._theme.skillColor;
     }
