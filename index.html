@@ -202,19 +202,7 @@
         const p = parseName(n);
         return { name: p.name, count: p.count };
       });
-      if (typeof umami !== 'undefined') {
-        const currentMap = window.roulette.getCurrentMap();
-        umami.track('start', {
-          count: window.roulette.getCount(),
-          // 받은 맵은 제목이 사람마다 제각각이라 id 로 모은다
-          map: currentMap ? (currentMap.id.startsWith('community:') ? currentMap.id : currentMap.title) : 'unknown',
-        });
-        marbles.forEach(m => {
-          umami.track('marble', { name: m.name, count: m.count });
-        });
-      }
       document.querySelector('#settings').classList.add('hide');
-      window.reportMapPlay && window.reportMapPlay();
       if (window.ads) {
         window.ads.beginRound(() => window.roulette.start());
       } else {

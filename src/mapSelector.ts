@@ -214,7 +214,8 @@ export function initMapSelector({ roulette, apiBase, onMapChange, toast, mapBrow
   // 맵 공유마당의 "마블룰렛에 설치"
   const params = new URLSearchParams(location.search);
   const installId = params.get('installMap');
-  if (installId !== null) {
+  // 맵 브라우저를 끈 경우(맵 서버 없음)에는 설치 요청도 받지 않는다
+  if (installId !== null && mapBrowser) {
     // 새로고침할 때마다 다시 설치하지 않도록 주소에서 뺀다
     params.delete('installMap');
     const query = params.toString();

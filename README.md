@@ -2,7 +2,7 @@
 
 This is a lucky draw by dropping marbles.
 
-[Demo]( https://lazygyu.github.io/roulette )
+[Demo](https://taewoo26.github.io/marble-draw/)
 
 # Requirements
 
