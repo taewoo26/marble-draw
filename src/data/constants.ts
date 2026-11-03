@@ -41,6 +41,16 @@ export const DEBUG_FORCE_SKILL: Skills | null = null;
 /** 개발 확인용. null 이 아니면 쿨타임이 끝날 때의 발동 확률을 이 값으로 덮어쓴다 (예: 1) */
 export const DEBUG_SKILL_RATE: number | null = null;
 
+/** 스킬이 발동했을 때 구슬 위에 잠깐 떠오르는 이름 */
+export const SKILL_LABELS: Partial<Record<Skills, string>> = {
+  [Skills.Impact]: '💥 밀어내기!',
+  [Skills.Boost]: '💨 부스터!',
+  [Skills.Swap]: '🔄 자리 바꾸기!',
+  [Skills.Freeze]: '❄️ 얼음!',
+};
+/** 스킬 이름이 떠 있는 시간(ms) */
+export const SKILL_LABEL_DURATION = 800;
+
 export const DefaultEntityColor = {
   box: 'cyan',
   circle: 'yellow',

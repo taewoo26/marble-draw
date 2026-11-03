@@ -1,4 +1,4 @@
-import { FREEZE_RADIUS } from './data/constants';
+import { FREEZE_RADIUS, SKILL_LABEL_DURATION } from './data/constants';
 import type { GameObject } from './gameObject';
 import type { ColorTheme } from './types/ColorTheme';
 import type { VectorLike } from './types/VectorLike';
@@ -154,6 +154,64 @@ export class FreezeEffect implements GameObject {
     ctx.stroke();
     ctx.globalAlpha *= 0.2;
     ctx.fill();
+    ctx.restore();
+  }
+}
+
+/**
+ * 스킬 이름 말풍선: 구슬 위에서 위로 살짝 떠오르며 사라진다.
+ * 구슬 이름(marble.ts 의 _drawName)처럼 1/zoom 으로 그려서 줌과 상관없이 글자 크기가 일정하다
+ */
+const LABEL_RISE = 0.8;
+
+export class SkillLabelEffect implements GameObject {
+  private _elapsed = 0;
+  isDestroy = false;
+  private _position: VectorLike;
+  /** 구슬이 골인하면 더 따라가지 않는다. 골인 뒤 물리에서 지워진 구슬은 위치가 (0, 0) 이 되기 때문 */
+  private _following = true;
+
+  constructor(
+    private _target: VectorLike,
+    private _text: string,
+    private _color: string,
+    private _goalY: number
+  ) {
+    this._position = { x: _target.x, y: _target.y };
+  }
+
+  update(deltaTime: number) {
+    this._elapsed += deltaTime;
+    if (this._following) {
+      if (this._target.y > this._goalY) {
+        this._following = false;
+      } else {
+        this._position = { x: this._target.x, y: this._target.y };
+      }
+    }
+    if (this._elapsed > SKILL_LABEL_DURATION) {
+      this.isDestroy = true;
+    }
+  }
+
+  render(ctx: CanvasRenderingContext2D, zoom: number, theme: ColorTheme) {
+    const rate = Math.min(1, this._elapsed / SKILL_LABEL_DURATION);
+    // 처음엔 빠르게 올라가다 천천히 멈춘다
+    const rise = LABEL_RISE * (1 - (1 - rate) * (1 - rate));
+    ctx.save();
+    ctx.globalAlpha = rate < 0.6 ? 1 : 1 - (rate - 0.6) / 0.4;
+    ctx.translate(this._position.x, this._position.y - 0.5 - rise);
+    ctx.scale(1 / zoom, 1 / zoom);
+    ctx.font = 'bold 12pt sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.shadowBlur = 0;
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = theme.background;
+    ctx.fillStyle = this._color;
+    ctx.strokeText(this._text, 0, 0);
+    ctx.fillText(this._text, 0, 0);
     ctx.restore();
   }
 }

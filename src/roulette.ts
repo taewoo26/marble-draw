@@ -7,6 +7,7 @@ import {
   FREEZE_DURATION,
   FREEZE_RADIUS,
   initialZoom,
+  SKILL_LABELS,
   Skills,
   SWAP_RANGE,
   Themes,
@@ -24,7 +25,7 @@ import { Box2dPhysics } from './physics-box2d';
 import { ProgressMap } from './progressMap';
 import { RankRenderer } from './rankRenderer';
 import { type AdHit, RouletteRenderer } from './rouletteRenderer';
-import { BoostEffect, FreezeEffect, SkillEffect, SwapEffect } from './skillEffect';
+import { BoostEffect, FreezeEffect, SkillEffect, SkillLabelEffect, SwapEffect } from './skillEffect';
 import type { RoundAd } from './types/Ad.type';
 import type { ColorTheme } from './types/ColorTheme';
 import type { MouseEventHandlerName, MouseEventName } from './types/mouseEvents.type';
@@ -249,8 +250,11 @@ export class Roulette extends EventTarget {
       if (marble.skill === Skills.Impact) {
         this._effects.push(new SkillEffect(marble.x, marble.y));
         this.physics.impact(marble.id);
+        this._showSkillLabel(marble, marble.skill);
       } else if (marble.skill !== Skills.None) {
-        this._useSkill(marble, marble.skill);
+        if (this._useSkill(marble, marble.skill)) {
+          this._showSkillLabel(marble, marble.skill);
+        }
       }
       if (marble.y > this._stage.goalY) {
         this._winners.push(marble);
@@ -297,8 +301,28 @@ export class Roulette extends EventTarget {
     });
   }
 
-  /** Impact 외의 새 스킬(부스터, 자리 바꾸기, 얼음)을 발동한다 */
-  private _useSkill(marble: Marble, skill: Skills) {
+  /** 발동한 구슬 위에 스킬 이름을 잠깐 띄운다 */
+  private _showSkillLabel(marble: Marble, skill: Skills) {
+    const label = SKILL_LABELS[skill];
+    if (!label || !this._stage) return;
+    this._effects.push(new SkillLabelEffect(marble, label, this._skillColor(skill), this._stage.goalY));
+  }
+
+  private _skillColor(skill: Skills): string {
+    switch (skill) {
+      case Skills.Boost:
+        return this._theme.skillColors.boost;
+      case Skills.Swap:
+        return this._theme.skillColors.swap;
+      case Skills.Freeze:
+        return this._theme.skillColors.freeze;
+      default:
+        return this._theme.skillColor;
+    }
+  }
+
+  /** Impact 외의 새 스킬(부스터, 자리 바꾸기, 얼음)을 발동한다. 실제로 아무 일도 없었으면 false */
+  private _useSkill(marble: Marble, skill: Skills): boolean {
     switch (skill) {
       case Skills.Boost:
         this._effects.push(new BoostEffect(marble));
@@ -306,7 +330,7 @@ export class Roulette extends EventTarget {
         break;
       case Skills.Swap: {
         const candidates = this._marblesNear(marble, SWAP_RANGE);
-        if (candidates.length === 0) return;
+        if (candidates.length === 0) return false;
         const other = candidates[Math.floor(Math.random() * candidates.length)];
         this._effects.push(new SwapEffect(marble, other));
         this.physics.swapMarbles(marble.id, other.id);
@@ -324,6 +348,7 @@ export class Roulette extends EventTarget {
         break;
       }
     }
+    return true;
   }
 
   /** 카메라와 슬로우모션이 주목할 구슬 = 당첨 커트라인에 걸쳐있는 구슬 */
