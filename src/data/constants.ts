@@ -51,6 +51,11 @@ export const SKILL_LABELS: Partial<Record<Skills, string>> = {
 /** 스킬 이름이 떠 있는 시간(ms) */
 export const SKILL_LABEL_DURATION = 800;
 
+/** 역전 알림 배너: 떠 있는 시간, 배너가 사라진 뒤 다음 배너까지 최소 간격, 시작 직후 배너를 띄우지 않는 시간 (ms) */
+export const BANNER_DURATION = 1500;
+export const BANNER_COOLDOWN = 2000;
+export const BANNER_START_DELAY = 3000;
+
 export const DefaultEntityColor = {
   box: 'cyan',
   circle: 'yellow',

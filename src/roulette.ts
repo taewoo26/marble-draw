@@ -1,5 +1,9 @@
+import { BannerRenderer } from './bannerRenderer';
 import { Camera } from './camera';
 import {
+  BANNER_COOLDOWN,
+  BANNER_DURATION,
+  BANNER_START_DELAY,
   BOOST_MAX_SPEED,
   BOOST_SPEED,
   canvasHeight,
@@ -90,6 +94,18 @@ export class Roulette extends EventTarget {
 
   private _uiObjects: UIObject[] = [];
 
+  /** 역전 알림 배너 */
+  private _banner = new BannerRenderer();
+  /** 이번 라운드가 시작된 뒤 지난 시간(ms) */
+  private _roundTime = 0;
+  /** 다음 배너를 띄울 수 있는 시각 (_roundTime 기준) */
+  private _nextBannerTime = 0;
+  /** 지난 프레임에 당첨 자리에 있던 구슬과 그때의 골인 수 */
+  private _lastLeader: Marble | null = null;
+  private _lastWinnerCount = 0;
+  /** 라운드 시작 때 구슬 수. 꼴찌 모드인지 판단하는 데 쓴다 */
+  private _roundMarbleCount = 0;
+
   private _autoRecording: boolean = false;
   private _recorder!: VideoRecorder;
 
@@ -156,7 +172,9 @@ export class Roulette extends EventTarget {
     const interval = (this._updateInterval / 1000) * timeScale;
 
     let simSeconds = 0;
+    let steps = 0;
     while (this._elapsed >= this._updateInterval) {
+      steps++;
       simSeconds += interval;
       this.physics.step(interval);
       this._updateMarbles(this._updateInterval, timeScale);
@@ -169,6 +187,7 @@ export class Roulette extends EventTarget {
     if (this._marbles.length > 1) {
       this._sortMarbles(simSeconds);
     }
+    this._checkLeaderChange(steps * this._updateInterval);
 
     if (this._stage) {
       const cameraTargetIndex = this._winners.length > 0 ? this._targetIndex : 0;
@@ -351,6 +370,48 @@ export class Roulette extends EventTarget {
     return true;
   }
 
+  /**
+   * 당첨 자리(_targetIndex)의 구슬이 바뀌었으면 역전 배너를 띄운다.
+   * 순위는 _sortMarbles 의 결과를 읽기만 한다
+   */
+  private _checkLeaderChange(deltaMs: number) {
+    if (!this._isRunning) return;
+    this._roundTime += deltaMs;
+
+    const slowMotion = this._timeScale < 1;
+    // 결승 슬로모션 연출을 가리지 않게 떠 있던 배너도 바로 숨긴다
+    if (slowMotion) this._banner.hide();
+
+    const leader = this._marbles[this._targetIndex] ?? null;
+    const prevLeader = this._lastLeader;
+    // 구슬이 골인하면 당첨 자리가 한 칸씩 밀리는데, 이건 역전이 아니므로 기준만 새로 잡는다
+    const someoneFinished = this._winners.length !== this._lastWinnerCount;
+    this._lastLeader = leader;
+    this._lastWinnerCount = this._winners.length;
+
+    if (!leader || !prevLeader || leader === prevLeader || someoneFinished) return;
+    if (slowMotion || this._roundTime < BANNER_START_DELAY || this._roundTime < this._nextBannerTime) return;
+
+    this._banner.show(this._bannerText(leader), leader.hue);
+    this._nextBannerTime = this._roundTime + BANNER_DURATION + BANNER_COOLDOWN;
+  }
+
+  /** 당첨 모드에 맞는 배너 문구 */
+  private _bannerText(marble: Marble): string {
+    const { start, end } = this._winnerRange;
+    if (start === 0 && end === 0) return `${marble.name} 1위 탈환!`;
+    if (start === end && end === this._roundMarbleCount - 1) return `${marble.name} 꼴찌 위기!`;
+    return `${marble.name} 당첨권 진입!`;
+  }
+
+  private _resetBanner() {
+    this._banner.hide();
+    this._roundTime = 0;
+    this._nextBannerTime = 0;
+    this._lastLeader = null;
+    this._lastWinnerCount = 0;
+  }
+
   /** 카메라와 슬로우모션이 주목할 구슬 = 당첨 커트라인에 걸쳐있는 구슬 */
   private get _targetIndex() {
     return this._winnerRange.end - this._winners.length;
@@ -448,6 +509,7 @@ export class Roulette extends EventTarget {
     await this.physics.init();
 
     this.addUiObject(new RankRenderer());
+    this.addUiObject(this._banner);
     this.attachEvent();
     const minimap = new Minimap();
     minimap.onViewportChange((pos) => {
@@ -563,6 +625,8 @@ export class Roulette extends EventTarget {
   public start() {
     this._isRunning = true;
     this._winnerRange = clipWinnerRange(options.winnerRange, this._marbles.length);
+    this._roundMarbleCount = this._marbles.length;
+    this._resetBanner();
     this._camera.startFollowingMarbles();
 
     if (this._autoRecording) {
@@ -705,6 +769,7 @@ export class Roulette extends EventTarget {
   }
 
   public reset() {
+    this._resetBanner();
     this.clearMarbles();
     this._clearMap();
     this._loadMap();
