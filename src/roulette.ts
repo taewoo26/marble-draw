@@ -412,6 +412,7 @@ export class Roulette extends EventTarget {
     if (slowMotion || this._roundTime < BANNER_START_DELAY || this._roundTime < this._nextBannerTime) return;
 
     this._banner.show(this._bannerText(leader), leader.hue);
+    sound.play('banner');
     this._nextBannerTime = this._roundTime + BANNER_DURATION + BANNER_COOLDOWN;
   }
 

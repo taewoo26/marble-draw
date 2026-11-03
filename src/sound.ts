@@ -11,6 +11,7 @@ export type SoundName =
   | 'giant'
   | 'shrink'
   | 'goal'
+  | 'banner'
   | 'fanfare';
 
 /**
@@ -92,6 +93,11 @@ class SoundManager {
       case 'goal':
         // 딩
         this._tone('sine', t, 0.3, 0.45, [1046]);
+        break;
+      case 'banner':
+        // 역전 알림: 짧게 두 번 울리는 알림음
+        this._tone('triangle', t, 0.08, 0.4, [988]);
+        this._tone('triangle', t + 0.1, 0.12, 0.4, [1319]);
         break;
       case 'fanfare': {
         // 짧은 팡파레: 도-미-솔-도
