@@ -1,5 +1,8 @@
 import type { MapEntity } from '../types/MapEntity.type';
 import {
+  BRICK_LAYER_DURABILITY,
+  BRICK_LAYER_GAP,
+  BRICK_ROWS_PER_LAYER,
   PINBALL_BUMPER_RADIUS,
   PINBALL_BUMPER_RESTITUTION,
   PINBALL_SPINNER_SPEED,
@@ -169,6 +172,43 @@ function windmillVillage(): MapEntity[] {
         [19.5, pinY + 0.5],
       ])
     );
+  });
+  return result;
+}
+
+/** Brick Breaker 첫 블록 층 y, 블록 구간 양쪽 벽 x */
+const BRICK_TOP = 20;
+const BRICK_LEFT = 4;
+const BRICK_RIGHT = 22;
+/** 블록 사이, 블록과 벽 사이 틈. 축소한 구슬(지름 0.375)도 빠져나가지 못할 만큼 좁게 */
+const BRICK_GAP = 0.1;
+const BRICK_HALF_HEIGHT = 0.3;
+/** Brick Breaker 마지막 층 아래, 결승 깔때기가 시작하는 y */
+const BRICK_BOTTOM = BRICK_TOP + (BRICK_LAYER_DURABILITY.length - 1) * BRICK_LAYER_GAP + 8;
+
+/**
+ * Brick Breaker 블록: 층마다 BRICK_ROWS_PER_LAYER 줄을 엇갈리게(줄마다 블록 수를 9, 10 개로 번갈아) 깐다.
+ * 블록은 life 가 있어 구슬이 닿으면 부서지고, 층마다 내구도(닿아 있어야 하는 시간)가 다르다.
+ * 순위 계산(progressMap)은 life 가 있는 엔티티를 막힌 곳으로 보지 않으므로 따로 힌트가 필요 없다
+ */
+function brickLayers(): MapEntity[] {
+  const result: MapEntity[] = [];
+  BRICK_LAYER_DURABILITY.forEach((durability, layer) => {
+    for (let row = 0; row < BRICK_ROWS_PER_LAYER; row++) {
+      const y = BRICK_TOP + layer * BRICK_LAYER_GAP + row * (BRICK_HALF_HEIGHT * 2 + BRICK_GAP);
+      const count = row % 2 === 0 ? 9 : 10;
+      const span = BRICK_RIGHT - BRICK_LEFT - BRICK_GAP * 2;
+      const width = (span - BRICK_GAP * (count - 1)) / count;
+      for (let i = 0; i < count; i++) {
+        const x = BRICK_LEFT + BRICK_GAP + width / 2 + i * (width + BRICK_GAP);
+        result.push({
+          type: 'static',
+          position: { x, y },
+          props: { density: 1, angularVelocity: 0, restitution: 0, life: 1, durability },
+          shape: { type: 'box', width: width / 2, height: BRICK_HALF_HEIGHT, rotation: 0 },
+        });
+      }
+    }
   });
   return result;
 }
@@ -3264,6 +3304,38 @@ export const stages: StageDef[] = [
         [13.8, WINDMILL_BOTTOM + 16],
       ]),
       ...windmillVillage(),
+    ],
+  },
+  {
+    // 구슬들이 블록을 부수며 내려간다. 아래층일수록 블록이 단단하다
+    title: 'Brick Breaker',
+    goalY: BRICK_BOTTOM + 15,
+    zoomY: BRICK_BOTTOM + 10,
+    entities: [
+      // 시작 깔때기(x 9.25 ~ 16.5)는 폭 2 입구(x 12 ~ 14)로 모였다가 블록 구간(x 4 ~ 22)으로 넓어지고,
+      // 마지막 층 아래에서 결승 통로(x 12.2 ~ 13.8, 폭 1.6)로 모인다
+      wall([
+        [16.5, -300],
+        [9.25, -300],
+        [9.25, 6],
+        [12, 10],
+        [12, 11],
+        [BRICK_LEFT, 15],
+        [BRICK_LEFT, BRICK_BOTTOM],
+        [12.2, BRICK_BOTTOM + 10],
+        [12.2, BRICK_BOTTOM + 16],
+      ]),
+      wall([
+        [16.5, -300],
+        [16.5, 6],
+        [14, 10],
+        [14, 11],
+        [BRICK_RIGHT, 15],
+        [BRICK_RIGHT, BRICK_BOTTOM],
+        [13.8, BRICK_BOTTOM + 10],
+        [13.8, BRICK_BOTTOM + 16],
+      ]),
+      ...brickLayers(),
     ],
   },
 ];

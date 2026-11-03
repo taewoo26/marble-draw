@@ -128,6 +128,8 @@ export class Box2dPhysics implements IPhysics {
         angle: 0,
         shape: entity.shape,
         life: entity.props.life ?? -1,
+        durability: entity.props.durability ?? 0,
+        damage: 0,
       });
     });
   }
@@ -463,8 +465,12 @@ export class Box2dPhysics implements IPhysics {
       const entity = this.entities[i];
       if (entity.life > 0) {
         if (this.isTouchingAny(entity.body)) {
-          this.deleteCandidates.push(entity.body);
-          this.entities.splice(i, 1);
+          // 내구도가 있으면 닿아 있는 시간을 모아서 다 차야 부서진다. 없으면 기존처럼 바로 부서진다
+          entity.damage += deltaSeconds * 1000;
+          if (entity.damage >= entity.durability) {
+            this.deleteCandidates.push(entity.body);
+            this.entities.splice(i, 1);
+          }
         }
       }
     }

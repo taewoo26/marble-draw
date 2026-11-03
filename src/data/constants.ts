@@ -137,6 +137,14 @@ export const WINDMILL_ARM = 2;
 export const WINDMILL_THICKNESS = 0.15;
 export const WINDMILL_PIN_RADIUS = 0.3;
 
+/**
+ * 맵 'Brick Breaker': 층별 블록 내구도(ms, 구슬이 닿아 있어야 부서지는 시간. 0 이면 닿자마자 부서짐),
+ * 층 간격, 층마다 블록 줄 수
+ */
+export const BRICK_LAYER_DURABILITY = [0, 800, 2000];
+export const BRICK_LAYER_GAP = 14;
+export const BRICK_ROWS_PER_LAYER = 3;
+
 export const DefaultEntityColor = {
   box: 'cyan',
   circle: 'yellow',

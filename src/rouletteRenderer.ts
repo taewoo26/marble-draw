@@ -303,6 +303,8 @@ export class RouletteRenderer {
       const transform = this.ctx.getTransform();
       this.ctx.translate(entity.x, entity.y);
       this.ctx.rotate(entity.angle);
+      // 내구도가 있는 블록은 닿아 있던 시간만큼 흐려진다
+      this.ctx.globalAlpha = entity.durability > 0 ? 1 - 0.7 * Math.min(1, entity.damage / entity.durability) : 1;
       this.ctx.fillStyle = entity.shape.color ?? this._theme.entity[entity.shape.type].fill;
       this.ctx.strokeStyle = entity.shape.color ?? this._theme.entity[entity.shape.type].outline;
       this.ctx.shadowBlur = this._theme.entity[entity.shape.type].bloomRadius;
