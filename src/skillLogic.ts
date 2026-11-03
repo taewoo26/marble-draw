@@ -16,7 +16,8 @@ import {
   RESIZE_STEP,
   SHRINK_DURATION,
   SHRINK_SCALE,
-  SKILL_BASE_RATE,
+  SKILL_COOL_TIME,
+  SKILL_RATE,
   SKILL_WEIGHTS,
   type SkillName,
   Skills,
@@ -40,9 +41,17 @@ export type SkillResult = {
   targets: SkillActor[];
 } | null;
 
-/** 쿨타임이 끝날 때 스킬이 발동할 확률. weight 는 구슬 가중치 (marble.ts) */
+/** 이름 가중치가 모두 같을 때 구슬이 받는 가중치 (roulette.ts setMarbles). 구슬 가중치는 0.1 ~ 1.1 */
+export const BASE_MARBLE_WEIGHT = 0.1;
+
+/** 쿨타임이 끝날 때 스킬이 발동할 확률. weight 는 구슬 가중치. 가중치가 가장 크면 SKILL_RATE + 0.2 */
 export function skillRateFor(weight: number): number {
-  return Math.min(1, SKILL_BASE_RATE + 0.2 * weight);
+  return Math.min(1, Math.max(0, SKILL_RATE + 0.2 * (weight - BASE_MARBLE_WEIGHT)));
+}
+
+/** 스킬 쿨타임(ms). 가중치가 클수록 짧아지고, SKILL_COOL_TIME 의 1/4 보다 짧아지지는 않는다 */
+export function coolTimeFor(weight: number): number {
+  return SKILL_COOL_TIME * Math.max(0.25, 1 - (weight - BASE_MARBLE_WEIGHT));
 }
 
 /** 발동한 스킬의 종류를 가중치대로 고른다. 가중치가 0 이하인 스킬은 나오지 않는다 */

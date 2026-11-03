@@ -8,14 +8,21 @@ import Box2DFactory from 'box2d-wasm';
 import { type SkillName, STUCK_DELAY } from '../../src/data/constants';
 import { stages } from '../../src/data/maps';
 import { Box2dPhysics } from '../../src/physics-box2d';
-import { applySkill, pickSkill, type SkillActor, skillRateFor } from '../../src/skillLogic';
+import {
+  applySkill,
+  BASE_MARBLE_WEIGHT,
+  coolTimeFor,
+  pickSkill,
+  type SkillActor,
+  skillRateFor,
+} from '../../src/skillLogic';
 
 export const STEP_MS = 10;
 export const MAX_SIM_SEC = 900;
 /** Marble.update 의 정지 판정 문턱 */
 const STUCK_LEN_SQ = 0.00001;
-/** 이름 가중치가 모두 같을 때 Marble 이 받는 weight (roulette.ts setMarbles 참고) */
-export const DEFAULT_MARBLE_WEIGHT = 0.1;
+/** 이름 가중치가 모두 같을 때 Marble 이 받는 weight */
+export const DEFAULT_MARBLE_WEIGHT = BASE_MARBLE_WEIGHT;
 
 export function seedRandom(seed: number) {
   let a = seed >>> 0;
@@ -79,7 +86,7 @@ export async function simulate({ mapIdx, n, seed, skills }: SimOptions): Promise
   // Marble 생성자와 같은 배치, 같은 쿨타임·발동 확률
   const maxLine = Math.ceil(n / 10);
   const lineDelta = -Math.max(0, Math.ceil(maxLine - 5));
-  const maxCoolTime = 1000 + (1 - DEFAULT_MARBLE_WEIGHT) * 4000;
+  const maxCoolTime = coolTimeFor(DEFAULT_MARBLE_WEIGHT);
   const skillRate = skills ? (skills.rate ?? skillRateFor(DEFAULT_MARBLE_WEIGHT)) : 0;
   const coolTime = new Map<number, number>();
   for (let order = 0; order < n; order++) {

@@ -39,10 +39,12 @@ export const SKILL_WEIGHTS: Record<SkillName, number> = {
 };
 
 /**
- * 스킬 발동 확률 = SKILL_BASE_RATE + 0.2 * 구슬 가중치 (쿨타임이 끝날 때마다 한 번 굴린다).
- * 이름 가중치가 모두 같으면 구슬 가중치는 0.1 이라 0.02 + SKILL_BASE_RATE. 0 이면 원작과 같은 빈도
+ * 스킬 쿨타임(ms)과, 쿨타임이 끝날 때 스킬이 발동할 확률. 이름 가중치가 모두 같을 때의 값이다.
+ * 가중치가 큰 이름일수록 쿨타임은 짧아지고 확률은 높아진다 (skillLogic.ts 의 coolTimeFor, skillRateFor).
+ * 원작은 약 4600ms, 0.02
  */
-export const SKILL_BASE_RATE = 0.15;
+export const SKILL_COOL_TIME = 2000;
+export const SKILL_RATE = 0.3;
 
 /** 부스터: 아래(+y) 방향으로 더하는 속도. 질량과 무관하게 같은 만큼 빨라진다 */
 export const BOOST_SPEED = 5;
