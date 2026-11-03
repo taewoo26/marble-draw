@@ -102,6 +102,11 @@ export const BANNER_START_DELAY = 3000;
 export const SOUND_VOLUME = 0.15;
 export const SOUND_MIN_INTERVAL = 100;
 
+/** 맵 'Pinball': 범퍼 반지름·탄성, 아래쪽 회전 막대 속도(라디안/초) */
+export const PINBALL_BUMPER_RADIUS = 0.6;
+export const PINBALL_BUMPER_RESTITUTION = 0.8;
+export const PINBALL_SPINNER_SPEED = 2.5;
+
 export const DefaultEntityColor = {
   box: 'cyan',
   circle: 'yellow',

@@ -1,4 +1,6 @@
 import type { MapEntity } from '../types/MapEntity.type';
+import { PINBALL_BUMPER_RADIUS, PINBALL_BUMPER_RESTITUTION, PINBALL_SPINNER_SPEED } from './constants';
+import { circle, spinner, wall } from './mapHelpers';
 
 export type AdBoard = {
   x: number;
@@ -46,6 +48,19 @@ export type OneWayLine = {
 export type ProgressHints = {
   oneWays?: OneWayLine[];
 };
+
+/** Pinball 범퍼: 4칸 간격 줄을 세 가지 위치로 번갈아 놓아, 범퍼를 피해 곧장 떨어지는 세로 줄이 없게 한다 */
+function pinballBumpers(): MapEntity[] {
+  const bumpers: MapEntity[] = [];
+  for (let row = 0; row < 23; row++) {
+    const y = 20 + row * 4;
+    const x0 = 5 + ((row % 3) * 4) / 3;
+    for (let x = x0; x <= 21; x += 4) {
+      bumpers.push(circle(x, y, PINBALL_BUMPER_RADIUS, PINBALL_BUMPER_RESTITUTION));
+    }
+  }
+  return bumpers;
+}
 
 export const stages: StageDef[] = [
   {
@@ -3030,6 +3045,49 @@ export const stages: StageDef[] = [
         shape: { type: 'box', width: 8.0, height: 0.1, rotation: 0, color: '#b3ccff' },
         props: { density: 1, angularVelocity: 5.5, restitution: 0 },
       },
+    ],
+  },
+  {
+    // 원형 범퍼 사이를 튕기며 내려가다, 서로 반대로 도는 막대 두 쌍을 지나 결승으로
+    title: 'Pinball',
+    goalY: 147,
+    zoomY: 143,
+    entities: [
+      // 시작 깔때기(기존 맵과 같은 x 9.25 ~ 16.5)는 폭 2 입구(x 12 ~ 14)로 모였다가 범퍼 구간(x 3 ~ 23)으로 넓어진다.
+      // 입구에서 구슬끼리 부딪혀 순서가 섞이므로 시작 위치에 따른 쏠림이 줄어든다. 그 다음
+      // 막대 구간(x 5 ~ 21)을 지나 결승 통로(x 12.5 ~ 13.5)로
+      wall([
+        [16.5, -300],
+        [9.25, -300],
+        [9.25, 6],
+        [12, 10],
+        [12, 11],
+        [3, 17],
+        [3, 108],
+        [5, 110],
+        [5, 136],
+        [12.5, 143],
+        [12.5, 148],
+      ]),
+      wall([
+        [16.5, -300],
+        [16.5, 6],
+        [14, 10],
+        [14, 11],
+        [23, 17],
+        [23, 108],
+        [21, 110],
+        [21, 136],
+        [13.5, 143],
+        [13.5, 148],
+      ]),
+      // 범퍼 23줄. 탄성이 1 을 넘으면 위로 역주행하므로 1 보다 작게 (PINBALL_BUMPER_RESTITUTION)
+      ...pinballBumpers(),
+      // 서로 반대 방향으로 도는 막대 두 쌍
+      spinner(9.5, 116, 2.2, 0.15, PINBALL_SPINNER_SPEED),
+      spinner(16.5, 116, 2.2, 0.15, -PINBALL_SPINNER_SPEED),
+      spinner(9.5, 126, 2.2, 0.15, -PINBALL_SPINNER_SPEED),
+      spinner(16.5, 126, 2.2, 0.15, PINBALL_SPINNER_SPEED),
     ],
   },
 ];
