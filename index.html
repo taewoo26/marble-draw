@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+<script async src="https://www.googletagmanager.com/gtm.js?id=GTM-K6WS55P2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+</script>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>핀볼게임 구슬 추첨기 - Marble Draw</title>
@@ -38,12 +44,6 @@
 <body>
 <script type="module" src="./src/index.ts"></script>
 <script type="text/javascript">
-  window.dataLayer = window.dataLayer || [];
-
-  function gtag() {
-    dataLayer.push(arguments);
-  }
-
   function getNames() {
     const value = document.querySelector('#in_names').value.trim();
     return value.split(/[,\r\n]/g).map(v => v.trim()).filter(v => !!v);
